@@ -67,13 +67,15 @@ public class KurentoHandler extends TextWebSocketHandler {
             return;
         }
 
-        String messageType = jsonMessage.get("type").getAsString();
-        String roomId = jsonMessage.has("roomId") ? jsonMessage.get("roomId").getAsString() : null;
-
-        if (roomId == null || memberId == null) {
-            log.error("❌ WebSocket 메시지 오류: roomId 또는 userId가 null");
+        if (!jsonMessage.has("roomId")) {
+            log.error("❌ WebSocket 메시지 오류: roomId 필드 없음");
             return;
         }
+
+        String messageType = jsonMessage.get("type").getAsString();
+        String roomId = jsonMessage.get("roomId").getAsString();
+
+        System.out.println("roomId: " + roomId);
 
         switch (messageType) {
             case "getUsers":
