@@ -31,6 +31,7 @@ public class GetUsersInRoomService implements GetUsersInRoomUseCase {
         }
 
         return GetUsersInChannelResponse.builder()
+                .channelId(roomId)
                 .users(users)
                 .build();
     }

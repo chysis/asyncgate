@@ -144,6 +144,8 @@ public class KurentoManager {
 
                     Member member = userStates.get(userId);
 
+                    System.out.println("member를 찾았습니다. : " + member.getId());
+
                     // member가 null이라면 exception
                     if (member == null) {
                         throw new SignalingServerException(FailType._MEMBER_NOT_FOUND);

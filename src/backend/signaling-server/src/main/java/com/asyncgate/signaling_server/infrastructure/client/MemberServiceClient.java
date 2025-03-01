@@ -24,6 +24,10 @@ public class MemberServiceClient {
         Map<String, String> queryParams = new HashMap<>();
         queryParams.put("userId", userId);
 
+        System.out.println("유저가 들어오려고 합니다.: " + userId);
+        // room 출력
+        System.out.println("룸 id : " + roomId);
+
         SuccessResponse<ReadUserRoomProfileResponse> response = HttpClientUtil.get(
                 memberServiceUrl, "/room/profile", queryParams, SuccessResponse.class);
 
