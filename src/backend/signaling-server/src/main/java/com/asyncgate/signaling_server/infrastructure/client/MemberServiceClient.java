@@ -18,7 +18,7 @@ import java.util.Map;
 public class MemberServiceClient {
 
     // @Value("${service.member.url}")
-    private String memberServiceUrl = "http://43.201.101.122";
+    private String memberServiceUrl = "https://api.asyncgate.site/users";
 
     public Member fetchMemberById(String userId, String roomId) {
         Map<String, String> queryParams = new HashMap<>();
