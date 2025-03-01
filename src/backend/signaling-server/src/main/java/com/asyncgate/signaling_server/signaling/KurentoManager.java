@@ -79,11 +79,26 @@ public class KurentoManager {
      */
     public void processSdpOffer(String roomId, String userId, String sdpOffer, Consumer<String> callback) {
         WebRtcEndpoint endpoint = createEndpoint(roomId, userId);
+
+        // SDP Offer 처리 및 SDP Answer 생성
         String sdpAnswer = endpoint.processOffer(sdpOffer);
-        endpoint.gatherCandidates(); // ICE Candidate 수집 시작
+        endpoint.gatherCandidates();
 
         log.info("📡 [Kurento] SDP Offer 처리 완료: roomId={}, userId={}", roomId, userId);
+
+        // SDP Answer 반환
         callback.accept(sdpAnswer);
+    }
+
+    // SDP Offer & Answer 조회
+    public String getSdpOffer(String roomId, String userId) {
+        WebRtcEndpoint endpoint = getUserEndpoint(roomId, userId);
+        return endpoint != null ? endpoint.getLocalSessionDescriptor() : null;
+    }
+
+    public String getSdpAnswer(String roomId, String userId) {
+        WebRtcEndpoint endpoint = getUserEndpoint(roomId, userId);
+        return endpoint != null ? endpoint.getRemoteSessionDescriptor() : null;
     }
 
     /**

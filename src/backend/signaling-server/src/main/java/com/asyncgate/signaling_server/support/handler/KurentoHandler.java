@@ -142,8 +142,6 @@ public class KurentoHandler extends TextWebSocketHandler {
                 JsonObject response = new JsonObject();
                 response.addProperty("id", "response");
                 response.addProperty("user_id", userId);
-                // ✅ sdpAnswer가 null이면 빈 문자열("")로 처리
-                response.addProperty("sdpAnswer", sdpAnswer != null ? sdpAnswer : "");
 
                 // ✅ 유저 상태 정보 추가 (음성, 화상, 화면 공유 상태 포함)
                 JsonArray usersArray = new JsonArray();
@@ -152,6 +150,15 @@ public class KurentoHandler extends TextWebSocketHandler {
                     userJson.addProperty("id", user.getId());
                     userJson.addProperty("nickname", user.getNickname());
                     userJson.addProperty("profile_image_url", user.getProfileImage());
+
+                    // ✅ 유저별 SDP Offer 가져오기 (저장된 값이 있다면 포함)
+                    String userSdpOffer = kurentoManager.getSdpOffer(roomId, user.getId());
+                    userJson.addProperty("sdpOffer", userSdpOffer != null ? userSdpOffer : "");
+
+                    // ✅ 유저별 SDP Answer 가져오기 (현재 SDP Answer 포함)
+                    String userSdpAnswer = (user.getId().equals(userId)) ? sdpAnswer : kurentoManager.getSdpAnswer(roomId, user.getId());
+                    userJson.addProperty("sdpAnswer", userSdpAnswer != null ? userSdpAnswer : "");
+
                     userJson.addProperty("audio", user.isMicEnabled());
                     userJson.addProperty("video", user.isCameraEnabled());
                     userJson.addProperty("screen", user.isScreenSharingEnabled());
