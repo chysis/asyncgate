@@ -1,6 +1,7 @@
 package com.asyncgate.signaling_server.config;
 
 import com.asyncgate.signaling_server.infrastructure.client.MemberServiceClient;
+import com.asyncgate.signaling_server.infrastructure.utility.WebClientUtil;
 import com.asyncgate.signaling_server.security.filter.WebSocketHandshakeInterceptor;
 import com.asyncgate.signaling_server.security.utility.JsonWebTokenUtil;
 import com.asyncgate.signaling_server.signaling.KurentoManager;
@@ -24,9 +25,12 @@ public class KurentoConfig implements WebSocketConfigurer {
     private final WebSocketHandshakeInterceptor webSocketHandshakeInterceptor;
     private final JsonWebTokenUtil jsonWebTokenUtil;  // 추가
 
-    public KurentoConfig(WebSocketHandshakeInterceptor webSocketHandshakeInterceptor, JsonWebTokenUtil jsonWebTokenUtil) {
+    private final WebClientUtil webClientUtil;
+
+    public KurentoConfig(WebSocketHandshakeInterceptor webSocketHandshakeInterceptor, JsonWebTokenUtil jsonWebTokenUtil, WebClientUtil webClientUtil) {
         this.webSocketHandshakeInterceptor = webSocketHandshakeInterceptor;
         this.jsonWebTokenUtil = jsonWebTokenUtil;  // 추가
+        this.webClientUtil = webClientUtil;
     }
 
     @Bean
@@ -36,7 +40,7 @@ public class KurentoConfig implements WebSocketConfigurer {
 
     @Bean
     public MemberServiceClient memberServiceClient() {
-        return new MemberServiceClient();
+        return new MemberServiceClient(webClientUtil);
     }
 
     @Bean
