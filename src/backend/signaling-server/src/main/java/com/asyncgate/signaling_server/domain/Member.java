@@ -44,13 +44,13 @@ public class Member implements Identifiable {
     // 미디어 상태 업데이트
     public void updateMediaState(String type, boolean enabled) {
         switch (type) {
-            case "mic":
+            case "AUDIO":
                 this.isMicEnabled = enabled;
                 break;
-            case "camera":
+            case "MEDIA":
                 this.isCameraEnabled = enabled;
                 break;
-            case "screen":
+            case "DATA":
                 this.isScreenSharingEnabled = enabled;
                 break;
             default:
