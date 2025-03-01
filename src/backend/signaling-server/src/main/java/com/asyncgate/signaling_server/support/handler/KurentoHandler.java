@@ -83,8 +83,8 @@ public class KurentoHandler extends TextWebSocketHandler {
             case "getUsers":
                 sendUsersInChannel(session, roomId);
                 break;
-            case "start":
-                handleStart(session, roomId, memberId, jsonMessage);
+            case "join":
+                handleJoin(session, roomId, memberId, jsonMessage);
                 break;
             case "candidate":
                 handleIceCandidate(roomId, memberId, jsonMessage);
@@ -127,7 +127,7 @@ public class KurentoHandler extends TextWebSocketHandler {
     /**
      * 사용자가 WebRTC 연결을 시작할 때 처리 (SDP Offer → SDP Answer 반환)
      */
-    private void handleStart(WebSocketSession session, String roomId, String userId, JsonObject jsonMessage) throws IOException {
+    private void handleJoin(WebSocketSession session, String roomId, String userId, JsonObject jsonMessage) throws IOException {
         if (!jsonMessage.has("sdpOffer")) {
             log.error("❌ handleStart 오류: sdpOffer 필드 없음");
             return;
