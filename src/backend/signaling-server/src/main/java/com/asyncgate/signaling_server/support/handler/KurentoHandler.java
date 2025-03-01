@@ -143,7 +143,7 @@ public class KurentoHandler extends TextWebSocketHandler {
                 // ✅ SDP Answer 및 유저 상태 정보를 함께 전송
                 JsonObject response = new JsonObject();
                 response.addProperty("id", "response");
-                response.addProperty("userId", userId);
+                response.addProperty("user_id", userId);
                 response.addProperty("sdpAnswer", sdpAnswer);
 
                 // ✅ 유저 상태 정보 추가 (음성, 화상, 화면 공유 상태 포함)
