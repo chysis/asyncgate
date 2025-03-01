@@ -83,7 +83,7 @@ public class KurentoHandler extends TextWebSocketHandler {
             case "getUsers":
                 sendUsersInChannel(session, roomId);
                 break;
-            case "join":
+            case "offer":
                 handleJoin(session, roomId, memberId, jsonMessage);
                 break;
             case "candidate":
@@ -128,12 +128,10 @@ public class KurentoHandler extends TextWebSocketHandler {
      * 사용자가 WebRTC 연결을 시작할 때 처리 (SDP Offer → SDP Answer 반환)
      */
     private void handleJoin(WebSocketSession session, String roomId, String userId, JsonObject jsonMessage) throws IOException {
-        if (!jsonMessage.has("sdpOffer")) {
-            log.error("❌ handleStart 오류: sdpOffer 필드 없음");
-            return;
-        }
 
-        String sdpOffer = jsonMessage.get("sdpOffer").getAsString();
+        // 있으면 데이터, 없으면 빈 문자열
+        JsonObject data = jsonMessage.has("data") ? jsonMessage.getAsJsonObject("data") : null;
+        String sdpOffer = (data != null && data.has("sdpOffer")) ? data.get("sdpOffer").getAsString() : null;
 
         kurentoManager.processSdpOffer(roomId, userId, sdpOffer, sdpAnswer -> {
             try {
@@ -144,7 +142,8 @@ public class KurentoHandler extends TextWebSocketHandler {
                 JsonObject response = new JsonObject();
                 response.addProperty("id", "response");
                 response.addProperty("user_id", userId);
-                response.addProperty("sdpAnswer", sdpAnswer);
+                // ✅ sdpAnswer가 null이면 빈 문자열("")로 처리
+                response.addProperty("sdpAnswer", sdpAnswer != null ? sdpAnswer : "");
 
                 // ✅ 유저 상태 정보 추가 (음성, 화상, 화면 공유 상태 포함)
                 JsonArray usersArray = new JsonArray();
@@ -175,13 +174,21 @@ public class KurentoHandler extends TextWebSocketHandler {
      * 클라이언트가 전송한 ICE Candidate를 처리
      */
     private void handleIceCandidate(String roomId, String userId, JsonObject jsonMessage) {
-        if (!jsonMessage.has("candidate")) {
+        if (!jsonMessage.has("data") || !jsonMessage.getAsJsonObject("data").has("candidate")) {
             log.error("❌ ICE Candidate 정보 없음: {}", jsonMessage);
             return;
         }
 
-        IceCandidate candidate = new Gson().fromJson(jsonMessage.get("candidate"), IceCandidate.class);
-        kurentoManager.sendIceCandidates(roomId, userId, candidate);
+        JsonObject data = jsonMessage.getAsJsonObject("data");
+        String extractedRoomId = data.has("roomId") ? data.get("roomId").getAsString() : null;
+
+        if (extractedRoomId == null) {
+            log.error("❌ ICE Candidate 오류: roomId 필드 없음");
+            return;
+        }
+
+        IceCandidate candidate = new Gson().fromJson(data.get("candidate"), IceCandidate.class);
+        kurentoManager.sendIceCandidates(extractedRoomId, userId, candidate);
     }
 
     /**
