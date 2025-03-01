@@ -1,9 +1,12 @@
 package com.asyncgate.signaling_server.support.handler;
 
 import com.asyncgate.signaling_server.dto.response.GetUsersInChannelResponse;
+import com.asyncgate.signaling_server.security.constant.Constants;
+import com.asyncgate.signaling_server.security.utility.JsonWebTokenUtil;
 import com.asyncgate.signaling_server.signaling.KurentoManager;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
 import org.kurento.client.IceCandidate;
 import org.springframework.stereotype.Component;
@@ -22,8 +25,11 @@ public class KurentoHandler extends TextWebSocketHandler {
     private final KurentoManager kurentoManager;
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
 
-    public KurentoHandler(KurentoManager kurentoManager) {
+    private final JsonWebTokenUtil jsonWebTokenUtil;
+
+    public KurentoHandler(KurentoManager kurentoManager, JsonWebTokenUtil jsonWebTokenUtil) {
         this.kurentoManager = kurentoManager;
+        this.jsonWebTokenUtil = jsonWebTokenUtil;
     }
 
     /**
@@ -43,6 +49,19 @@ public class KurentoHandler extends TextWebSocketHandler {
         JsonObject jsonMessage = new Gson().fromJson(message.getPayload(), JsonObject.class);
         log.info("📩 WebSocket 메시지 수신: {}", jsonMessage);
 
+        // jwt token 검증
+        if (!jsonMessage.has("token")) {
+            log.error("❌ WebSocket 메시지 오류: token 필드 없음");
+            return;
+        }
+
+        String token = jsonMessage.get("token").getAsString();
+        Claims claims = jsonWebTokenUtil.validate(token);
+
+        String memberId = claims.get(Constants.MEMBER_ID_CLAIM_NAME, String.class);
+
+        log.info("🔑 JWT 인증 성공 - userId: {}", memberId);
+
         if (!jsonMessage.has("type")) {
             log.error("❌ WebSocket 메시지 오류: type 필드 없음");
             return;
@@ -50,9 +69,8 @@ public class KurentoHandler extends TextWebSocketHandler {
 
         String messageType = jsonMessage.get("type").getAsString();
         String roomId = jsonMessage.has("roomId") ? jsonMessage.get("roomId").getAsString() : null;
-        String userId = jsonMessage.has("userId") ? jsonMessage.get("userId").getAsString() : null;
 
-        if (roomId == null || userId == null) {
+        if (roomId == null || memberId == null) {
             log.error("❌ WebSocket 메시지 오류: roomId 또는 userId가 null");
             return;
         }
@@ -62,19 +80,19 @@ public class KurentoHandler extends TextWebSocketHandler {
                 sendUsersInChannel(session, roomId);
                 break;
             case "start":
-                handleStart(session, roomId, userId, jsonMessage);
+                handleStart(session, roomId, memberId, jsonMessage);
                 break;
             case "candidate":
-                handleIceCandidate(roomId, userId, jsonMessage);
+                handleIceCandidate(roomId, memberId, jsonMessage);
                 break;
             case "toggleAudio":
-                toggleMediaState(roomId, userId, "audio", jsonMessage.get("enabled").getAsBoolean());
+                toggleMediaState(roomId, memberId, "audio", jsonMessage.get("enabled").getAsBoolean());
                 break;
             case "toggleVideo":
-                toggleMediaState(roomId, userId, "video", jsonMessage.get("enabled").getAsBoolean());
+                toggleMediaState(roomId, memberId, "video", jsonMessage.get("enabled").getAsBoolean());
                 break;
             case "toggleScreen":
-                toggleMediaState(roomId, userId, "screen", jsonMessage.get("enabled").getAsBoolean());
+                toggleMediaState(roomId, memberId, "screen", jsonMessage.get("enabled").getAsBoolean());
                 break;
             default:
                 log.warn("⚠️ 알 수 없는 WebSocket 메시지 유형: {}", messageType);

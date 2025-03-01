@@ -1,6 +1,8 @@
 package com.asyncgate.signaling_server.config;
 
 import com.asyncgate.signaling_server.infrastructure.client.MemberServiceClient;
+import com.asyncgate.signaling_server.security.filter.WebSocketHandshakeInterceptor;
+import com.asyncgate.signaling_server.security.utility.JsonWebTokenUtil;
 import com.asyncgate.signaling_server.signaling.KurentoManager;
 import com.asyncgate.signaling_server.support.handler.KurentoHandler;
 import org.kurento.client.KurentoClient;
@@ -19,6 +21,14 @@ public class KurentoConfig implements WebSocketConfigurer {
     @Value("${kms.url}")
     private String kmsUrl;
 
+    private final WebSocketHandshakeInterceptor webSocketHandshakeInterceptor;
+    private final JsonWebTokenUtil jsonWebTokenUtil;  // 추가
+
+    public KurentoConfig(WebSocketHandshakeInterceptor webSocketHandshakeInterceptor, JsonWebTokenUtil jsonWebTokenUtil) {
+        this.webSocketHandshakeInterceptor = webSocketHandshakeInterceptor;
+        this.jsonWebTokenUtil = jsonWebTokenUtil;  // 추가
+    }
+
     @Bean
     public KurentoClient kurentoClient() {
         return KurentoClient.create(kmsUrl);
@@ -36,13 +46,15 @@ public class KurentoConfig implements WebSocketConfigurer {
 
     @Bean
     public KurentoHandler kurentoHandler(KurentoManager kurentoManager) {
-        return new KurentoHandler(kurentoManager);
+        return new KurentoHandler(kurentoManager, jsonWebTokenUtil); // JsonWebTokenUtil 주입
     }
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         System.out.println("🚀 WebSocketHandlerRegistry 등록");
-        registry.addHandler(kurentoHandler(kurentoManager(kurentoClient(), memberServiceClient())), "/signal").setAllowedOrigins("*");
+        registry.addHandler(kurentoHandler(kurentoManager(kurentoClient(), memberServiceClient())), "/signal")
+                .setAllowedOriginPatterns("*")
+                .addInterceptors(webSocketHandshakeInterceptor);
     }
 
     @Bean
