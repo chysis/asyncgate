@@ -85,14 +85,14 @@ public class KurentoHandler extends TextWebSocketHandler {
             case "candidate":
                 handleIceCandidate(roomId, memberId, jsonMessage);
                 break;
-            case "toggleAudio":
-                toggleMediaState(roomId, memberId, "audio", jsonMessage.get("enabled").getAsBoolean());
+            case "AUDIO":
+                toggleMediaState(roomId, memberId, "AUDIO", jsonMessage.get("enabled").getAsBoolean());
                 break;
-            case "toggleVideo":
-                toggleMediaState(roomId, memberId, "video", jsonMessage.get("enabled").getAsBoolean());
+            case "MEDIA":
+                toggleMediaState(roomId, memberId, "MEDIA", jsonMessage.get("enabled").getAsBoolean());
                 break;
-            case "toggleScreen":
-                toggleMediaState(roomId, memberId, "screen", jsonMessage.get("enabled").getAsBoolean());
+            case "DATA":
+                toggleMediaState(roomId, memberId, "DATA", jsonMessage.get("enabled").getAsBoolean());
                 break;
             default:
                 log.warn("⚠️ 알 수 없는 WebSocket 메시지 유형: {}", messageType);
