@@ -50,25 +50,30 @@ public class KurentoManager {
         MediaPipeline pipeline = getOrCreatePipeline(roomId);
         WebRtcEndpoint endpoint = new WebRtcEndpoint.Builder(pipeline).build();
 
-        // 사용자 정보 조회
-        Member member = memberServiceClient.fetchMemberById(userId, roomId);
+        // 사용자 정보 조회 (비동기)
+        memberServiceClient.fetchMemberById(userId, roomId)
+                .doOnSuccess(member -> {
+                    log.info("✔ 성공적으로 사용자 정보 조회: {}", member);
 
-        // ICE Candidate 리스너 추가
-        endpoint.addIceCandidateFoundListener(event -> {
-            JsonObject candidateMessage = new JsonObject();
-            candidateMessage.addProperty("id", "iceCandidate");
-            candidateMessage.addProperty("userId", member.getId());
-            candidateMessage.add("candidate", new Gson().toJsonTree(event.getCandidate()));
+                    // ICE Candidate 리스너 추가
+                    endpoint.addIceCandidateFoundListener(event -> {
+                        JsonObject candidateMessage = new JsonObject();
+                        candidateMessage.addProperty("id", "iceCandidate");
+                        candidateMessage.addProperty("userId", member.getId());
+                        candidateMessage.add("candidate", new Gson().toJsonTree(event.getCandidate()));
 
-            log.info("🧊 [Kurento] ICE Candidate 전송: roomId={}, userId={}, candidate={}", roomId, member.getId(), event.getCandidate());
-        });
+                        log.info("🧊 [Kurento] ICE Candidate 전송: roomId={}, userId={}, candidate={}", roomId, member.getId(), event.getCandidate());
+                    });
 
-        // 사용자 엔드포인트 저장
-        // 음성, 화상용
-        roomEndpoints.computeIfAbsent(roomId, k -> new ConcurrentHashMap<>()).put(userId, endpoint);
+                    // 사용자 엔드포인트 저장
+                    // 음성, 화상용
+                    roomEndpoints.computeIfAbsent(roomId, k -> new ConcurrentHashMap<>()).put(userId, endpoint);
 
-        // 유저 데이터 저장
-        userStates.put(userId, member);
+                    // 유저 데이터 저장
+                    userStates.put(userId, member);
+                })
+                .doOnError(error -> log.error("❌ Member 정보 조회 실패: roomId={}, userId={}, message={}", roomId, userId, error.getMessage()))
+                .subscribe();
 
         log.info("[Kurento] WebRTC Endpoint 생성: roomId={}, userId={}", roomId, userId);
         return endpoint;
