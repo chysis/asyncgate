@@ -43,12 +43,12 @@ public class KurentoHandler extends TextWebSocketHandler {
         JsonObject jsonMessage = new Gson().fromJson(message.getPayload(), JsonObject.class);
         log.info("📩 WebSocket 메시지 수신: {}", jsonMessage);
 
-        if (!jsonMessage.has("id")) {
-            log.error("❌ WebSocket 메시지 오류: id 필드 없음");
+        if (!jsonMessage.has("type")) {
+            log.error("❌ WebSocket 메시지 오류: type 필드 없음");
             return;
         }
 
-        String messageType = jsonMessage.get("id").getAsString();
+        String messageType = jsonMessage.get("type").getAsString();
         String roomId = jsonMessage.has("roomId") ? jsonMessage.get("roomId").getAsString() : null;
         String userId = jsonMessage.has("userId") ? jsonMessage.get("userId").getAsString() : null;
 
