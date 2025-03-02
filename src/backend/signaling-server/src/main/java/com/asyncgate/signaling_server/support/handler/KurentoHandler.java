@@ -81,9 +81,6 @@ public class KurentoHandler extends TextWebSocketHandler {
         System.out.println("roomId: " + roomId);
 
         switch (messageType) {
-            case "join":
-                handleJoin(roomId, memberId);
-                break;
             case "offer":
                 broadcastUsersInChannel(session, roomId, memberId, jsonMessage);
                 break;
@@ -102,31 +99,6 @@ public class KurentoHandler extends TextWebSocketHandler {
             default:
                 log.warn("⚠️ 알 수 없는 WebSocket 메시지 유형: {}", messageType);
         }
-    }
-
-    /**
-     * 특정 채널의 모든 유저 정보를 클라이언트에게 반환
-     */
-    private void sendUsersInChannel(WebSocketSession session, String roomId) {
-        List<GetUsersInChannelResponse.UserInRoom> users = kurentoManager.getUsersInChannel(roomId);
-        GetUsersInChannelResponse response = GetUsersInChannelResponse.builder()
-                .channelId(roomId)
-                .users(users)
-                .build();
-
-        try {
-            session.sendMessage(new TextMessage(new Gson().toJson(response)));
-            log.info("📡 [Kurento] 채널 유저 정보 전송: {}", roomId);
-        } catch (IOException e) {
-            log.error("❌ WebSocket 메시지 전송 실패: {}", e.getMessage());
-        }
-    }
-
-    /**
-     * 사용자가 WebRTC 연결을 시작할 때 처리 (endpoint 생성)
-     */
-    private void handleJoin(String roomId, String userId) {
-        kurentoManager.createEndpoint(roomId, userId);
     }
 
     /**

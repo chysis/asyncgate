@@ -19,6 +19,6 @@ public class JoinRoomService implements JoinRoomUseCase {
     public void execute(final String roomId, final String memberId) {
 
         // kurento media pipeline 생성
-        kurentoManager.getOrCreatePipeline(roomId);
+        kurentoManager.getOrCreateEndpoint(roomId, memberId);
     }
 }
