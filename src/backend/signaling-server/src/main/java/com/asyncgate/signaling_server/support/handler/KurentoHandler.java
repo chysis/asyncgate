@@ -16,6 +16,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 
@@ -168,7 +169,7 @@ public class KurentoHandler extends TextWebSocketHandler {
 
         // 있으면 데이터, 없으면 빈 문자열
         JsonObject data = jsonMessage.has("data") ? jsonMessage.getAsJsonObject("data") : null;
-        String sdpOffer = (data != null && data.has("sdpOffer") && !data.get("sdpOffer").isJsonNull())
+        String sdpOffer = Objects.requireNonNull(data).has("sdpOffer") && !data.get("sdpOffer").isJsonNull()
                 ? data.get("sdpOffer").getAsString()
                 : "";
 
