@@ -93,7 +93,7 @@ public class KurentoManager {
      * SDP Offer를 처리하고 Answer를 반환
      */
     public void processSdpOffer(String roomId, String userId, String sdpOffer, Consumer<String> callback) {
-        WebRtcEndpoint endpoint = createEndpoint(roomId, userId);
+        WebRtcEndpoint endpoint = getUserEndpoint(roomId, userId);
 
         // SDP Offer 처리 및 SDP Answer 생성
         String sdpAnswer = endpoint.processOffer(sdpOffer);
