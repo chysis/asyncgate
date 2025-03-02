@@ -104,8 +104,17 @@ public class KurentoManager {
     public void processSdpOffer(String roomId, String userId, String sdpOffer, Consumer<String> callback) {
         WebRtcEndpoint endpoint = getUserEndpoint(roomId, userId);
 
+        System.out.println("processSdpOffer 접근함, endpoint get 성공" + endpoint);
+
+        if (endpoint.getMediaState() == MediaState.CONNECTED) {
+            log.warn("⚠️ 이미 SDP 협상이 완료된 상태입니다. 새로운 Offer를 처리하지 않습니다.");
+            return;
+        }
+
         // SDP Offer 처리 및 SDP Answer 생성
         String sdpAnswer = endpoint.processOffer(sdpOffer);
+
+        System.out.println("sdp 처리 및 sdp answer 생성" + sdpAnswer);
 
         // ICE Candidate 수집
         endpoint.gatherCandidates();

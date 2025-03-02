@@ -138,6 +138,8 @@ public class KurentoHandler extends TextWebSocketHandler {
                 ? data.get("sdpOffer").getAsString()
                 : "";
 
+        System.out.println("broadcastUsersInChannel 접근함 ");
+
         kurentoManager.processSdpOffer(roomId, userId, sdpOffer, sdpAnswer -> {
             try {
                 // ✅ 현재 방에 있는 모든 유저 정보 가져오기
