@@ -151,6 +151,13 @@ public class KurentoManager {
 
         endpoint.addIceCandidate(candidate);
         log.info("🧊 [Kurento] ICE Candidate 추가 완료: roomId={}, userId={}, candidate={}", roomId, userId, candidate);
+
+        // candidate 를 websocket으로 다시 반환
+        JsonObject candidateMessage = new JsonObject();
+        candidateMessage.addProperty("id", "iceCandidate");
+        candidateMessage.addProperty("userId", userId);
+        candidateMessage.add("candidate", new Gson().toJsonTree(candidate));
+
     }
 
     /**
@@ -317,6 +324,25 @@ public class KurentoManager {
         if (userStates.containsKey(userId)) {
             userStates.get(userId).updateMediaState("screenShare", false);
         }
+    }
+
+    /**
+     * 방에서 특정 사용자 제거
+     */
+    public void removeUserFromChannel(String roomId, String userId) {
+        if (!roomEndpoints.containsKey(roomId) || !roomEndpoints.get(roomId).containsKey(userId)) {
+            log.warn("⚠️ [Kurento] 사용자 제거 실패: 존재하지 않는 사용자 (roomId={}, userId={})", roomId, userId);
+            return;
+        }
+
+        // WebRTC Endpoint 제거
+        roomEndpoints.get(roomId).get(userId).release();
+        roomEndpoints.get(roomId).remove(userId);
+
+        // 사용자 정보 제거
+        userStates.remove(userId);
+
+        log.info("🛑 [Kurento] 사용자 제거 완료: roomId={}, userId={}", roomId, userId);
     }
 
     /**

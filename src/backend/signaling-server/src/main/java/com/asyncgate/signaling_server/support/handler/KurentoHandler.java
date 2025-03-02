@@ -94,6 +94,9 @@ public class KurentoHandler extends TextWebSocketHandler {
             case "DATA":
                 toggleMediaState(roomId, memberId, "DATA", jsonMessage.get("enabled").getAsBoolean());
                 break;
+            case "exit":
+                kurentoManager.removeUserFromChannel(roomId, memberId);
+                break;
             default:
                 log.warn("⚠️ 알 수 없는 WebSocket 메시지 유형: {}", messageType);
         }
