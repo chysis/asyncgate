@@ -80,11 +80,11 @@ public class KurentoHandler extends TextWebSocketHandler {
         System.out.println("roomId: " + roomId);
 
         switch (messageType) {
-            case "getUsers":
-                sendUsersInChannel(session, roomId);
+            case "join":
+                handleJoin(roomId, memberId);
                 break;
             case "offer":
-                handleJoin(session, roomId, memberId, jsonMessage);
+                broadcastUsersInChannel(session, roomId, memberId, jsonMessage);
                 break;
             case "candidate":
                 handleIceCandidate(roomId, memberId, jsonMessage);
@@ -122,59 +122,10 @@ public class KurentoHandler extends TextWebSocketHandler {
     }
 
     /**
-     * 사용자가 WebRTC 연결을 시작할 때 처리 (SDP Offer → SDP Answer 반환)
+     * 사용자가 WebRTC 연결을 시작할 때 처리 (endpoint 생성)
      */
-    /**
-     * 사용자가 WebRTC 연결을 시작할 때 처리 (SDP Offer → SDP Answer 반환)
-     */
-    private void handleJoin(WebSocketSession session, String roomId, String userId, JsonObject jsonMessage) throws IOException {
-
-        // 있으면 데이터, 없으면 빈 문자열
-        JsonObject data = jsonMessage.has("data") ? jsonMessage.getAsJsonObject("data") : null;
-        String sdpOffer = (data != null && data.has("sdpOffer")) ? data.get("sdpOffer").getAsString() : null;
-
-        kurentoManager.processSdpOffer(roomId, userId, sdpOffer, sdpAnswer -> {
-            try {
-                // ✅ 현재 방에 있는 모든 유저 정보 가져오기
-                List<GetUsersInChannelResponse.UserInRoom> users = kurentoManager.getUsersInChannel(roomId);
-
-                // ✅ SDP Answer 및 유저 상태 정보를 함께 전송
-                JsonObject response = new JsonObject();
-                response.addProperty("id", "response");
-                response.addProperty("user_id", userId);
-
-                // ✅ 유저 상태 정보 추가 (음성, 화상, 화면 공유 상태 포함)
-                JsonArray usersArray = new JsonArray();
-                for (GetUsersInChannelResponse.UserInRoom user : users) {
-                    JsonObject userJson = new JsonObject();
-                    userJson.addProperty("id", user.getId());
-                    userJson.addProperty("nickname", user.getNickname());
-                    userJson.addProperty("profile_image_url", user.getProfileImage());
-
-                    // ✅ 유저별 SDP Offer 가져오기 (저장된 값이 있다면 포함)
-                    String userSdpOffer = kurentoManager.getSdpOffer(roomId, user.getId());
-                    userJson.addProperty("sdpOffer", userSdpOffer != null ? userSdpOffer : "");
-
-                    // ✅ 유저별 SDP Answer 가져오기 (현재 SDP Answer 포함)
-                    String userSdpAnswer = (user.getId().equals(userId)) ? sdpAnswer : kurentoManager.getSdpAnswer(roomId, user.getId());
-                    userJson.addProperty("sdpAnswer", userSdpAnswer != null ? userSdpAnswer : "");
-
-                    userJson.addProperty("audio", user.isMicEnabled());
-                    userJson.addProperty("video", user.isCameraEnabled());
-                    userJson.addProperty("screen", user.isScreenSharingEnabled());
-                    usersArray.add(userJson);
-                }
-                response.add("users", usersArray);
-
-                // ✅ SDP Answer + 유저 정보 함께 전송
-                session.sendMessage(new TextMessage(response.toString()));
-
-                log.info("📡 [Kurento] SDP Answer 및 유저 정보 전송 - roomId: {}", roomId);
-
-            } catch (IOException e) {
-                log.error("❌ SDP 응답 전송 실패", e);
-            }
-        });
+    private void handleJoin(String roomId, String userId) {
+        kurentoManager.createEndpoint(roomId, userId);
     }
 
     /**
@@ -204,31 +155,58 @@ public class KurentoHandler extends TextWebSocketHandler {
     private void toggleMediaState(String roomId, String userId, String type, boolean enabled) {
         log.info("🔄 {} 공유 상태 변경: {} - {}", type, userId, enabled);
         kurentoManager.updateUserMediaState(roomId, userId, type, enabled);
-
-        // ✅ 변경된 유저 정보를 모든 클라이언트에게 전송
-        broadcastUsersInChannel(roomId);
     }
 
     /**
      * 특정 채널 내 모든 클라이언트에게 업데이트된 유저 정보를 전송
      */
-    private void broadcastUsersInChannel(String roomId) {
-        List<GetUsersInChannelResponse.UserInRoom> users = kurentoManager.getUsersInChannel(roomId);
-        GetUsersInChannelResponse response = GetUsersInChannelResponse.builder()
-                .channelId(roomId)
-                .users(users)
-                .build();
+    private void broadcastUsersInChannel(WebSocketSession session, String roomId, String userId, JsonObject jsonMessage) {
 
-        String jsonResponse = new Gson().toJson(response);
+        // 있으면 데이터, 없으면 빈 문자열
+        JsonObject data = jsonMessage.has("data") ? jsonMessage.getAsJsonObject("data") : null;
+        String sdpOffer = (data != null && data.has("sdpOffer")) ? data.get("sdpOffer").getAsString() : null;
 
-        for (WebSocketSession session : sessions.values()) {
+        kurentoManager.processSdpOffer(roomId, userId, sdpOffer, sdpAnswer -> {
             try {
-                session.sendMessage(new TextMessage(jsonResponse));
+                // ✅ 현재 방에 있는 모든 유저 정보 가져오기
+                List<GetUsersInChannelResponse.UserInRoom> users = kurentoManager.getUsersInChannel(roomId);
+
+                // ✅ SDP Answer 및 유저 상태 정보를 함께 전송
+                JsonObject response = new JsonObject();
+                response.addProperty("type", "response"); // id -> type으로 변경함.
+                response.addProperty("user_id", userId);
+
+                // ✅ 유저 상태 정보 추가 (음성, 화상, 화면 공유 상태 포함)
+                JsonArray usersArray = new JsonArray();
+                for (GetUsersInChannelResponse.UserInRoom user : users) {
+                    JsonObject userJson = new JsonObject();
+                    userJson.addProperty("id", user.getId());
+                    userJson.addProperty("nickname", user.getNickname());
+                    userJson.addProperty("profile_image_url", user.getProfileImage());
+
+                    // ✅ 유저별 SDP Offer 가져오기 (저장된 값이 있다면 포함)
+                    String userSdpOffer = kurentoManager.getSdpOffer(roomId, user.getId());
+                    userJson.addProperty("sdpOffer", userSdpOffer != null ? userSdpOffer : "");
+
+                    // ✅ 유저별 SDP Answer 가져오기 (현재 SDP Answer 포함)
+                    String userSdpAnswer = (user.getId().equals(userId)) ? sdpAnswer : kurentoManager.getSdpAnswer(roomId, user.getId());
+                    userJson.addProperty("sdpAnswer", userSdpAnswer != null ? userSdpAnswer : "");
+
+                    userJson.addProperty("audio", user.isMicEnabled());
+                    userJson.addProperty("video", user.isCameraEnabled());
+                    userJson.addProperty("screen", user.isScreenSharingEnabled());
+                    usersArray.add(userJson);
+                }
+                response.add("users", usersArray);
+
+                session.sendMessage(new TextMessage(response.toString()));
+
+                log.info("📡 [Kurento] SDP Answer 및 유저 정보 전송 - roomId: {}", roomId);
+
             } catch (IOException e) {
-                log.error("❌ WebSocket 메시지 전송 실패: {}", e.getMessage());
+                log.error("❌ SDP 응답 전송 실패", e);
             }
-        }
-        log.info("📡 [Kurento] 모든 클라이언트에게 채널 유저 정보 전송: {}", roomId);
+        });
     }
 
     /**

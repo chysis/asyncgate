@@ -79,6 +79,16 @@ public class KurentoManager {
         return endpoint;
     }
 
+    // 특정 유저의 endpoint 찾기
+    public WebRtcEndpoint getUserEndpoint(String roomId, String userId) {
+        if (!roomEndpoints.containsKey(roomId) || !roomEndpoints.get(roomId).containsKey(userId)) {
+            log.error("❌ [Kurento] WebRTC Endpoint 없음: roomId={}, userId={}", roomId, userId);
+            return null;
+        }
+
+        return roomEndpoints.get(roomId).get(userId);
+    }
+
     /**
      * SDP Offer를 처리하고 Answer를 반환
      */
@@ -87,6 +97,8 @@ public class KurentoManager {
 
         // SDP Offer 처리 및 SDP Answer 생성
         String sdpAnswer = endpoint.processOffer(sdpOffer);
+
+        // ICE Candidate 수집
         endpoint.gatherCandidates();
 
         log.info("📡 [Kurento] SDP Offer 처리 완료: roomId={}, userId={}", roomId, userId);
@@ -157,16 +169,6 @@ public class KurentoManager {
                             .build();
                 })
                 .collect(Collectors.toList());
-    }
-
-    // 특정 유저의 endpoint 찾기
-    public WebRtcEndpoint getUserEndpoint(String roomId, String userId) {
-        if (!roomEndpoints.containsKey(roomId) || !roomEndpoints.get(roomId).containsKey(userId)) {
-            log.error("❌ [Kurento] WebRTC Endpoint 없음: roomId={}, userId={}", roomId, userId);
-            return null;
-        }
-
-        return roomEndpoints.get(roomId).get(userId);
     }
 
     /**
