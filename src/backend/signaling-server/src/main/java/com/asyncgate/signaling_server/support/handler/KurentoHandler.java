@@ -162,6 +162,10 @@ public class KurentoHandler extends TextWebSocketHandler {
      */
     private void broadcastUsersInChannel(WebSocketSession session, String roomId, String userId, JsonObject jsonMessage) {
 
+        System.out.println("jsonMessage: " + jsonMessage.getAsJsonObject("data"));
+        System.out.println("jsonMessage: " + jsonMessage.getAsJsonObject("data").get("sdpOffer"));
+        System.out.println("jsonMessage: " + jsonMessage.getAsJsonObject("data").get("sdpOffer").getAsString());
+
         // 있으면 데이터, 없으면 빈 문자열
         JsonObject data = jsonMessage.has("data") ? jsonMessage.getAsJsonObject("data") : null;
         String sdpOffer = (data != null && data.has("sdpOffer")) ? data.get("sdpOffer").getAsString() : null;
