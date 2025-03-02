@@ -168,7 +168,9 @@ public class KurentoHandler extends TextWebSocketHandler {
 
         // 있으면 데이터, 없으면 빈 문자열
         JsonObject data = jsonMessage.has("data") ? jsonMessage.getAsJsonObject("data") : null;
-        String sdpOffer = (data != null && data.has("sdpOffer")) ? data.get("sdpOffer").getAsString() : null;
+        String sdpOffer = (data != null && data.has("sdpOffer") && !data.get("sdpOffer").isJsonNull())
+                ? data.get("sdpOffer").getAsString()
+                : "";
 
         kurentoManager.processSdpOffer(roomId, userId, sdpOffer, sdpAnswer -> {
             try {
