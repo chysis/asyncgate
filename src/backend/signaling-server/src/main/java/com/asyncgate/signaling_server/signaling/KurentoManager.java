@@ -122,12 +122,14 @@ public class KurentoManager {
      * ICE Candidate를 특정 유저에게 추가
      */
     public void sendIceCandidates(String roomId, String userId, IceCandidate candidate) {
-        if (!roomEndpoints.containsKey(roomId) || !roomEndpoints.get(roomId).containsKey(userId)) {
-            log.error("❌ [Kurento] ICE Candidate 오류: 존재하지 않는 방 또는 사용자 (roomId={}, userId={})", roomId, userId);
+
+        WebRtcEndpoint endpoint = getUserEndpoint(roomId, userId);
+
+        if (endpoint == null) {
+            log.error("❌ [Kurento] WebRTC Endpoint 없음: roomId={}, userId={}", roomId, userId);
             return;
         }
 
-        WebRtcEndpoint endpoint = roomEndpoints.get(roomId).get(userId);
         endpoint.addIceCandidate(candidate);
         log.info("🧊 [Kurento] ICE Candidate 추가 완료: roomId={}, userId={}, candidate={}", roomId, userId, candidate);
     }

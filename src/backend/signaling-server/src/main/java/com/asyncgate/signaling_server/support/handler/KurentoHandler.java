@@ -139,15 +139,9 @@ public class KurentoHandler extends TextWebSocketHandler {
         }
 
         JsonObject data = jsonMessage.getAsJsonObject("data");
-        String extractedRoomId = data.has("roomId") ? data.get("roomId").getAsString() : null;
-
-        if (extractedRoomId == null) {
-            log.error("❌ ICE Candidate 오류: roomId 필드 없음");
-            return;
-        }
 
         IceCandidate candidate = new Gson().fromJson(data.get("candidate"), IceCandidate.class);
-        kurentoManager.sendIceCandidates(extractedRoomId, userId, candidate);
+        kurentoManager.sendIceCandidates(roomId, userId, candidate);
     }
 
     /**
