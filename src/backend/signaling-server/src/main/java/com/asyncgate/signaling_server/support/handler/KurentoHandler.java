@@ -83,7 +83,7 @@ public class KurentoHandler extends TextWebSocketHandler {
                 broadcastUsersInChannel(session, roomId, memberId, jsonMessage);
                 break;
             case "candidate":
-                handleIceCandidate(roomId, memberId, jsonMessage);
+                handleIceCandidate(session, roomId, memberId, jsonMessage);
                 break;
             case "AUDIO":
                 toggleMediaState(roomId, memberId, "AUDIO", jsonMessage.get("enabled").getAsBoolean());
@@ -105,7 +105,10 @@ public class KurentoHandler extends TextWebSocketHandler {
     /**
      * 클라이언트가 전송한 ICE Candidate를 처리
      */
-    private void handleIceCandidate(String roomId, String userId, JsonObject jsonMessage) {
+    /**
+     * 클라이언트가 전송한 ICE Candidate를 처리
+     */
+    private void handleIceCandidate(WebSocketSession session, String roomId, String userId, JsonObject jsonMessage) {
         if (!jsonMessage.has("data") || !jsonMessage.getAsJsonObject("data").has("candidate")) {
             log.error("❌ ICE Candidate 정보 없음: {}", jsonMessage);
             return;
@@ -114,7 +117,9 @@ public class KurentoHandler extends TextWebSocketHandler {
         JsonObject data = jsonMessage.getAsJsonObject("data");
 
         IceCandidate candidate = new Gson().fromJson(data.get("candidate"), IceCandidate.class);
-        kurentoManager.sendIceCandidates(roomId, userId, candidate);
+
+        // KurentoManager에 WebSocketSession 전달
+        kurentoManager.sendIceCandidates(session, roomId, userId, candidate);
     }
 
     /**

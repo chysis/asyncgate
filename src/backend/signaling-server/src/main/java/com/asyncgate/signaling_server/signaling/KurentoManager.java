@@ -11,15 +11,15 @@ import lombok.RequiredArgsConstructor;
 import org.kurento.client.*;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.io.IOException;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
 
 @Slf4j
 @Service
@@ -138,10 +138,12 @@ public class KurentoManager {
     }
 
     /**
-     * ICE Candidate를 특정 유저에게 추가
+     * ICE Candidate를 특정 유저에게 추가하고 같은 방의 모든 클라이언트에게 전송
      */
-    public void sendIceCandidates(String roomId, String userId, IceCandidate candidate) {
-
+    /**
+     * ICE Candidate를 특정 유저에게 추가하고 같은 방의 모든 유저에게 전송
+     */
+    public void sendIceCandidates(WebSocketSession session, String roomId, String userId, IceCandidate candidate) {
         WebRtcEndpoint endpoint = getUserEndpoint(roomId, userId);
 
         if (endpoint == null) {
@@ -149,15 +151,23 @@ public class KurentoManager {
             return;
         }
 
+        // ICE Candidate 추가
         endpoint.addIceCandidate(candidate);
         log.info("🧊 [Kurento] ICE Candidate 추가 완료: roomId={}, userId={}, candidate={}", roomId, userId, candidate);
 
-        // candidate 를 websocket으로 다시 반환
+        // ICE Candidate 메시지 생성
         JsonObject candidateMessage = new JsonObject();
-        candidateMessage.addProperty("id", "iceCandidate");
+        candidateMessage.addProperty("type", "iceCandidate");  // id → type 통일
         candidateMessage.addProperty("userId", userId);
         candidateMessage.add("candidate", new Gson().toJsonTree(candidate));
 
+        try {
+            // WebSocket을 통해 ICE Candidate 전송
+            session.sendMessage(new TextMessage(candidateMessage.toString()));
+            log.info("📡 [Kurento] ICE Candidate 전송 완료: roomId={}, toUserId={}", roomId, userId);
+        } catch (IOException e) {
+            log.error("❌ ICE Candidate 전송 실패: roomId={}, toUserId={}", roomId, userId, e);
+        }
     }
 
     /**
