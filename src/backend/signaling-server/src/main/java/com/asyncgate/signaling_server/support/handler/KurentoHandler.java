@@ -142,8 +142,10 @@ public class KurentoHandler extends TextWebSocketHandler {
 
         kurentoManager.processSdpOffer(roomId, userId, sdpOffer, sdpAnswer -> {
             try {
+
                 // ✅ 현재 방에 있는 모든 유저 정보 가져오기
                 List<GetUsersInChannelResponse.UserInRoom> users = kurentoManager.getUsersInChannel(roomId);
+
 
                 // ✅ SDP Answer 및 유저 상태 정보를 함께 전송
                 JsonObject response = new JsonObject();

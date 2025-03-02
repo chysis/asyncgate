@@ -161,31 +161,23 @@ public class KurentoManager {
             return Collections.emptyList();
         }
 
-        return roomEndpoints.get(channelId).entrySet().stream()
-                .map(entry -> {
-                    String userId = entry.getKey();
-                    WebRtcEndpoint endpoint = entry.getValue();
+        log.info("📡 [Kurento] userStates 현재 상태: {}", userStates);
+        userStates.forEach((key, value) -> log.info("🔍 userId={}, member={}", key, value));
 
+        return roomEndpoints.get(channelId).keySet().stream()
+                .map(userId -> {
 
                     Member member = userStates.get(userId);
 
                     System.out.println("member를 찾았습니다. : " + member.getId());
 
-                    // member가 null이라면 exception
-                    if (member == null) {
-                        throw new SignalingServerException(FailType._MEMBER_NOT_FOUND);
-                    }
-
-                    boolean isMicEnabled = endpoint.isMediaFlowingIn(MediaType.AUDIO) && endpoint.isMediaFlowingOut(MediaType.AUDIO);
-                    boolean isCameraEnabled = endpoint.isMediaFlowingIn(MediaType.VIDEO) && endpoint.isMediaFlowingOut(MediaType.VIDEO);
-
                     return GetUsersInChannelResponse.UserInRoom.builder()
                             .id(member.getId())
                             .nickname(member.getNickname())  // 닉네임 정보가 없으면 기본 userId 사용
                             .profileImage(member.getProgileImageUrl())  // 프로필 이미지 필드가 없으면 기본 값 설정
-                            .isMicEnabled(isMicEnabled)
-                            .isCameraEnabled(isCameraEnabled)
-                            .isScreenSharingEnabled(false)
+                            .isMicEnabled(member.isMicEnabled())
+                            .isCameraEnabled(member.isCameraEnabled())
+                            .isScreenSharingEnabled(member.isScreenSharingEnabled())
                             .build();
                 })
                 .collect(Collectors.toList());
