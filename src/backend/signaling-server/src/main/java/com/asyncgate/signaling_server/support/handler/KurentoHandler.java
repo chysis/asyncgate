@@ -192,8 +192,14 @@ public class KurentoHandler extends TextWebSocketHandler {
      * 클라이언트가 WebSocket 연결을 종료하면, 세션에서 제거
      */
     @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        log.info("❌ WebSocket 연결 종료: {}", session.getId());
-        sessions.remove(session.getId());
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+        log.info("❌ WebSocket 연결 종료: sessionId={}, 상태코드={}, 이유={}", session.getId(), status.getCode(), status.getReason());
+
+        // 특정 상태 코드에 따른 추가 처리
+        if (status.getCode() == 1006) {
+            log.warn("⚠️ 클라이언트에서 비정상적으로 연결이 종료됨 (예: 네트워크 문제, 서버 종료)");
+        } else if (status.getCode() == 1011) {
+            log.error("❌ 서버 내부 오류로 WebSocket 연결이 종료됨");
+        }
     }
 }
