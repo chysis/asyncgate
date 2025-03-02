@@ -17,6 +17,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 
@@ -142,43 +143,48 @@ public class KurentoHandler extends TextWebSocketHandler {
 
         kurentoManager.processSdpOffer(roomId, userId, sdpOffer, sdpAnswer -> {
             try {
-
-                // ✅ 현재 방에 있는 모든 유저 정보 가져오기
-                List<GetUsersInChannelResponse.UserInRoom> users = kurentoManager.getUsersInChannel(roomId);
-
+                // ✅ 현재 방에 있는 모든 유저 정보 가져오기 (null 방지)
+                List<GetUsersInChannelResponse.UserInRoom> users =
+                        Optional.ofNullable(kurentoManager.getUsersInChannel(roomId))
+                                .orElse(Collections.emptyList());
 
                 // ✅ SDP Answer 및 유저 상태 정보를 함께 전송
                 JsonObject response = new JsonObject();
-                response.addProperty("type", "response"); // id -> type으로 변경함.
+                response.addProperty("type", "response"); // id -> type으로 변경
                 response.addProperty("user_id", userId);
 
                 // ✅ 유저 상태 정보 추가 (음성, 화상, 화면 공유 상태 포함)
                 JsonArray usersArray = new JsonArray();
-                for (GetUsersInChannelResponse.UserInRoom user : users) {
-                    JsonObject userJson = new JsonObject();
-                    userJson.addProperty("id", user.getId());
-                    userJson.addProperty("nickname", user.getNickname());
-                    userJson.addProperty("profile_image_url", user.getProfileImage());
 
-                    // ✅ 유저별 SDP Offer 가져오기 (저장된 값이 있다면 포함)
-                    String userSdpOffer = kurentoManager.getSdpOffer(roomId, user.getId());
-                    userJson.addProperty("sdpOffer", userSdpOffer != null ? userSdpOffer : "");
+                users.stream()
+                        .filter(Objects::nonNull)  // 🚨 user가 null이면 제외
+                        .forEach(user -> {
+                            JsonObject userJson = new JsonObject();
 
-                    // ✅ 유저별 SDP Answer 가져오기 (현재 SDP Answer 포함)
-                    String userSdpAnswer = (user.getId().equals(userId)) ? sdpAnswer : kurentoManager.getSdpAnswer(roomId, user.getId());
-                    userJson.addProperty("sdpAnswer", userSdpAnswer != null ? userSdpAnswer : "");
+                            // ✅ 각 필드의 null 방지 및 기본값 설정
+                            userJson.addProperty("id", Optional.ofNullable(user.getId()).orElse("unknown"));
+                            userJson.addProperty("nickname", Optional.ofNullable(user.getNickname()).orElse("Unknown User"));
+                            userJson.addProperty("profile_image_url", Optional.ofNullable(user.getProfileImage()).orElse("default-profile.png"));
 
-                    userJson.addProperty("audio", user.isMicEnabled());
-                    userJson.addProperty("video", user.isCameraEnabled());
-                    userJson.addProperty("screen", user.isScreenSharingEnabled());
-                    usersArray.add(userJson);
-                }
+                            // ✅ 유저별 SDP Offer 가져오기 (저장된 값이 있다면 포함)
+                            String userSdpOffer = kurentoManager.getSdpOffer(roomId, user.getId());
+                            userJson.addProperty("sdpOffer", Optional.ofNullable(userSdpOffer).orElse(""));
+
+                            // ✅ 유저별 SDP Answer 가져오기 (현재 SDP Answer 포함)
+                            String userSdpAnswer = (user.getId().equals(userId)) ? sdpAnswer : kurentoManager.getSdpAnswer(roomId, user.getId());
+                            userJson.addProperty("sdpAnswer", Optional.ofNullable(userSdpAnswer).orElse(""));
+
+                            userJson.addProperty("audio", Optional.ofNullable(user.isMicEnabled()).orElse(false));
+                            userJson.addProperty("video", Optional.ofNullable(user.isCameraEnabled()).orElse(false));
+                            userJson.addProperty("screen", Optional.ofNullable(user.isScreenSharingEnabled()).orElse(false));
+
+                            usersArray.add(userJson);
+                        });
+
                 response.add("users", usersArray);
-
                 session.sendMessage(new TextMessage(response.toString()));
 
                 log.info("📡 [Kurento] SDP Answer 및 유저 정보 전송 - roomId: {}", roomId);
-
             } catch (IOException e) {
                 log.error("❌ SDP 응답 전송 실패", e);
             }

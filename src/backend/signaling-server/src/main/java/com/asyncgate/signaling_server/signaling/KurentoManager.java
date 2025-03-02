@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -166,20 +167,22 @@ public class KurentoManager {
 
         return roomEndpoints.get(channelId).keySet().stream()
                 .map(userId -> {
-
                     Member member = userStates.get(userId);
-
-                    System.out.println("member를 찾았습니다. : " + member.getId());
+                    if (member == null) {
+                        log.warn("⚠️ [Kurento] userStates에서 userId={}에 대한 멤버 정보를 찾을 수 없습니다. 건너뜁니다.", userId);
+                        return null; // 🚨 `null` 반환 (filter에서 제거)
+                    }
 
                     return GetUsersInChannelResponse.UserInRoom.builder()
                             .id(member.getId())
-                            .nickname(member.getNickname())  // 닉네임 정보가 없으면 기본 userId 사용
-                            .profileImage(member.getProgileImageUrl())  // 프로필 이미지 필드가 없으면 기본 값 설정
+                            .nickname(member.getNickname())
+                            .profileImage(member.getProgileImageUrl())
                             .isMicEnabled(member.isMicEnabled())
                             .isCameraEnabled(member.isCameraEnabled())
                             .isScreenSharingEnabled(member.isScreenSharingEnabled())
                             .build();
                 })
+                .filter(Objects::nonNull)  // 🚀 `null`인 경우 건너뛰기
                 .collect(Collectors.toList());
     }
 
