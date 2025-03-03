@@ -20,7 +20,7 @@ public class MemberEntity {
     private String profileImageUrl;
     private String nickname;
 
-    private MemberMediaType isAudioEnabled; // 오디오
-    private MemberMediaType isMediaEnabled; // 화상 공유
-    private MemberMediaType isDataEnabled; // 화면 공유
+    private boolean isAudioEnabled; // 오디오
+    private boolean isMediaEnabled; // 화상 공유
+    private boolean isDataEnabled; // 화면 공유
 }
