@@ -25,8 +25,7 @@ public class WebRTCConfig {
         return String.format("turn:%s", turnServer);
     }
 
-    // TURN 서버 인증 정보 반환
-    public String getTurnCredential() {
-        return turnPassword;
+    public String getStunUrl() {
+        return String.format("stun:%s", stunServer);
     }
 }
