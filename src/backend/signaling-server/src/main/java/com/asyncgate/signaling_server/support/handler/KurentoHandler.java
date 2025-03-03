@@ -131,7 +131,9 @@ public class KurentoHandler extends TextWebSocketHandler {
             return;
         }
 
-        boolean enabled = jsonMessage.get("enabled").getAsBoolean();
+        System.out.println("toggleMediaState 접근함 ");
+        JsonObject data = jsonMessage.getAsJsonObject("data");
+        boolean enabled = data.has("enabled") && !data.get("enabled").isJsonNull() && data.get("enabled").getAsBoolean(); // 기본값 false
 
         log.info("🔄 {} 공유 상태 변경: {} - {}", type, userId, enabled);
         kurentoManager.updateUserMediaState(roomId, userId, type, enabled);
