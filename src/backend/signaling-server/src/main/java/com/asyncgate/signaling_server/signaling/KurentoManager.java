@@ -155,6 +155,10 @@ public class KurentoManager {
 
         // 클라이언트가 보낸 ICE Candidate를 Kurento에 추가
         endpoint.addIceCandidate(candidate);
+
+        endpoint.getICECandidatePairs().forEach(pair -> {
+            log.info("🧊 [Kurento] ICE Candidate Pair: {}", pair);
+        });
         log.info("🧊 [Kurento] 클라이언트의 ICE Candidate 추가 완료: roomId={}, userId={}, candidate={}", roomId, userId, candidate);
 
         // ✅ Kurento가 생성한 ICE 후보를 자동으로 클라이언트로 전송하도록 리스너 등록
