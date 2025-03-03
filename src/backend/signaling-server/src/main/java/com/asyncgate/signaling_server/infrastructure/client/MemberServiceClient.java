@@ -1,6 +1,7 @@
 package com.asyncgate.signaling_server.infrastructure.client;
 
 import com.asyncgate.signaling_server.domain.Member;
+import com.asyncgate.signaling_server.dto.request.JoinRoomRequest;
 import com.asyncgate.signaling_server.exception.FailType;
 import com.asyncgate.signaling_server.exception.SignalingServerException;
 import com.asyncgate.signaling_server.infrastructure.dto.response.ReadUserRoomProfileResponse;
@@ -25,7 +26,7 @@ public class MemberServiceClient {
     @Value("${service.member.url}")
     private String memberServiceUrl;
 
-    public Mono<Member> fetchMemberById(String userId, String roomId) {
+    public Mono<Member> fetchMemberById(String userId, String roomId, JoinRoomRequest request) {
         Map<String, String> queryParams = new HashMap<>();
         queryParams.put("userId", userId);
 
@@ -38,7 +39,7 @@ public class MemberServiceClient {
                         return Mono.error(new SignalingServerException(FailType._MEMBER_NOT_FOUND));
                     }
                     ReadUserRoomProfileResponse userProfile = response.getResult();
-                    return Mono.just(Member.create(userId, roomId, userProfile.getProfileImageUrl(), userProfile.getNickname()));
+                    return Mono.just(Member.create(userId, roomId, userProfile.getProfileImageUrl(), userProfile.getNickname(), request.audioEnabled(), request.mediaEnabled(), request.dataEnabled()));
                 })
                 .doOnError(e -> log.error("❌ MemberServiceClient 오류: 유저 정보 조회 실패 (userId={}, roomId={}, message={})", userId, roomId, e.getMessage(), e));
     }

@@ -29,15 +29,15 @@ public class Member implements Identifiable {
         this.isScreenSharingEnabled = isScreenSharingEnabled;
     }
 
-    public static Member create(final String id, final String roomId, final String progileImageUrl, final String nickname) {
+    public static Member create(final String id, final String roomId, final String progileImageUrl, final String nickname, final boolean isMicEnabled, final boolean isCameraEnabled, final boolean isScreenSharingEnabled) {
         return Member.builder()
                 .id(id)
                 .roomId(roomId)
                 .progileImageUrl(progileImageUrl)
                 .nickname(nickname)
-                .isMicEnabled(false)
-                .isCameraEnabled(false)
-                .isScreenSharingEnabled(false)
+                .isMicEnabled(isMicEnabled)
+                .isCameraEnabled(isCameraEnabled)
+                .isScreenSharingEnabled(isScreenSharingEnabled)
                 .build();
     }
 

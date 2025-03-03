@@ -1,5 +1,6 @@
 package com.asyncgate.signaling_server.controller;
 
+import com.asyncgate.signaling_server.dto.request.JoinRoomRequest;
 import com.asyncgate.signaling_server.dto.response.GetUsersInChannelResponse;
 import com.asyncgate.signaling_server.security.annotation.MemberID;
 import com.asyncgate.signaling_server.usecase.GetUsersInRoomUseCase;
@@ -20,8 +21,8 @@ public class ChatRoomCommandController {
      * 채널 참여
      */
     @PostMapping("/{room_id}/join")
-    public SuccessResponse<String> joinRoom(@PathVariable("room_id") final String roomId, @MemberID final String memberId) {
-        joinRoomUseCase.execute(roomId, memberId);
+    public SuccessResponse<String> joinRoom(@PathVariable("room_id") final String roomId, @MemberID final String memberId, @RequestBody JoinRoomRequest request) {
+        joinRoomUseCase.execute(roomId, memberId, request);
         return SuccessResponse.ok("room: " + roomId + "에 user: " + memberId + "가 참여하였습니다.");
     }
 
