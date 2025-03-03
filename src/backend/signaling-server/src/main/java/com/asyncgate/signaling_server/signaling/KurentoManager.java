@@ -269,7 +269,7 @@ public class KurentoManager {
 
         // ✅ userStates에서 해당 사용자의 상태 업데이트
         if (userStates.containsKey(userId)) {
-            userStates.get(userId).updateMediaState("mic", false);
+            userStates.get(userId).updateMediaState("AUDIO", false);
         }
     }
 
@@ -282,7 +282,7 @@ public class KurentoManager {
 
         // ✅ userStates에서 해당 사용자의 상태 업데이트
         if (userStates.containsKey(userId)) {
-            userStates.get(userId).updateMediaState("mic", true);
+            userStates.get(userId).updateMediaState("AUDIO", true);
         }
     }
 
@@ -295,7 +295,7 @@ public class KurentoManager {
 
         // ✅ userStates에서 해당 사용자의 상태 업데이트
         if (userStates.containsKey(userId)) {
-            userStates.get(userId).updateMediaState("camera", false);
+            userStates.get(userId).updateMediaState("MEDIA", false);
         }
     }
 
@@ -308,7 +308,7 @@ public class KurentoManager {
 
         // ✅ userStates에서 해당 사용자의 상태 업데이트
         if (userStates.containsKey(userId)) {
-            userStates.get(userId).updateMediaState("camera", true);
+            userStates.get(userId).updateMediaState("MEDIA", true);
         }
     }
 
@@ -321,7 +321,7 @@ public class KurentoManager {
 
         // ✅ userStates에서 해당 사용자의 상태 업데이트
         if (userStates.containsKey(userId)) {
-            userStates.get(userId).updateMediaState("screenShare", true);
+            userStates.get(userId).updateMediaState("DATA", true);
         }
     }
 
@@ -334,7 +334,7 @@ public class KurentoManager {
 
         // ✅ userStates에서 해당 사용자의 상태 업데이트
         if (userStates.containsKey(userId)) {
-            userStates.get(userId).updateMediaState("screenShare", false);
+            userStates.get(userId).updateMediaState("DATA", false);
         }
     }
 
