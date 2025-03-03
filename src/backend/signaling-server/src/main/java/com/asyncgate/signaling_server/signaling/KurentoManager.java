@@ -12,6 +12,7 @@ import org.kurento.client.*;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -48,7 +49,6 @@ public class KurentoManager {
      * WebRTC 엔드포인트 생성 및 ICE Candidate 리스너 설정
      */
     public synchronized WebRtcEndpoint getOrCreateEndpoint(String roomId, String userId) {
-        // 미디어 파이프라인 가져오기 (존재하지 않으면 생성)
         MediaPipeline pipeline = getOrCreatePipeline(roomId);
 
         // WebRtcEndpoint 가져오기 또는 생성
@@ -58,33 +58,38 @@ public class KurentoManager {
 
         log.info("🛠 WebRTC Endpoint 생성 또는 가져오기 완료: roomId={}, userId={}", roomId, userId);
 
-        // 사용자 정보 조회 (비동기 처리)
-        memberServiceClient.fetchMemberById(userId, roomId)
-                .doOnSuccess(member -> {
-                    log.info("✔ 성공적으로 사용자 정보 조회: {}", member);
+        try {
+            // 동기적으로 사용자 정보 가져오기
+            Member member = memberServiceClient.fetchMemberById(userId, roomId).block(Duration.ofSeconds(3));
 
-                    // ICE Candidate 리스너 추가
-                    endpoint.addIceCandidateFoundListener(event -> {
-                        JsonObject candidateMessage = new JsonObject();
-                        candidateMessage.addProperty("id", "iceCandidate");
-                        candidateMessage.addProperty("userId", member.getId());
-                        candidateMessage.add("candidate", new Gson().toJsonTree(event.getCandidate()));
+            if (member != null) {
+                log.info("✔ 성공적으로 사용자 정보 조회: {}", member);
 
-                        log.info("🧊 ICE Candidate 전송: roomId={}, userId={}, candidate={}",
-                                roomId, member.getId(), event.getCandidate());
-                    });
+                // ICE Candidate 리스너 추가
+                endpoint.addIceCandidateFoundListener(event -> {
+                    JsonObject candidateMessage = new JsonObject();
+                    candidateMessage.addProperty("id", "iceCandidate");
+                    candidateMessage.addProperty("userId", member.getId());
+                    candidateMessage.add("candidate", new Gson().toJsonTree(event.getCandidate()));
 
-                    // 사용자 엔드포인트 저장 (음성, 화상용)
-                    roomEndpoints.computeIfAbsent(roomId, k -> new ConcurrentHashMap<>()).put(userId, endpoint);
+                    log.info("🧊 ICE Candidate 전송: roomId={}, userId={}, candidate={}",
+                            roomId, member.getId(), event.getCandidate());
+                });
 
-                    // 유저 데이터 저장
-                    userStates.put(userId, member);
+                // 사용자 엔드포인트 저장 (음성, 화상용)
+                roomEndpoints.computeIfAbsent(roomId, k -> new ConcurrentHashMap<>()).put(userId, endpoint);
 
-                    log.info("✅ 사용자 데이터 및 엔드포인트 저장 완료: roomId={}, userId={}", roomId, userId);
-                })
-                .doOnError(error -> log.error("❌ Member 정보 조회 실패: roomId={}, userId={}, message={}",
-                        roomId, userId, error.getMessage()))
-                .subscribe();
+                // 유저 데이터 저장
+                userStates.put(userId, member);
+
+                log.info("✅ 사용자 데이터 및 엔드포인트 저장 완료: roomId={}, userId={}", roomId, userId);
+            } else {
+                log.warn("⚠ 사용자 정보를 찾을 수 없음: roomId={}, userId={}", roomId, userId);
+            }
+        } catch (Exception e) {
+            log.error("❌ Member 정보 조회 실패 (동기 처리): roomId={}, userId={}, message={}",
+                    roomId, userId, e.getMessage());
+        }
 
         return endpoint;
     }
@@ -139,9 +144,6 @@ public class KurentoManager {
 
     /**
      * ICE Candidate를 특정 유저에게 추가하고 같은 방의 모든 클라이언트에게 전송
-     */
-    /**
-     * ICE Candidate를 특정 유저에게 추가하고 같은 방의 모든 유저에게 전송
      */
     public void sendIceCandidates(WebSocketSession session, String roomId, String userId, IceCandidate candidate) {
         WebRtcEndpoint endpoint = getUserEndpoint(roomId, userId);
