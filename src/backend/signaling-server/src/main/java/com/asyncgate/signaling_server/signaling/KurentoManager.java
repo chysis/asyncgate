@@ -233,14 +233,14 @@ public class KurentoManager {
                 member.updateMediaState("AUDIO", enabled);
                 break;
 
-            case "VIDEO":
+            case "MEDIA":
                 if (enabled) {
                     reconnectVideo(userId, endpoint);
                 } else {
                     disconnectVideo(userId, endpoint);
                 }
                 log.info("📹 [Kurento] Video 상태 변경: roomId={}, userId={}, enabled={}", roomId, userId, enabled);
-                member.updateMediaState("VIDEO", enabled);
+                member.updateMediaState("MEDIA", enabled);
                 break;
 
                 // 화면공유
