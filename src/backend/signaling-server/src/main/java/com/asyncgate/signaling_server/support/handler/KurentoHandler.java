@@ -86,13 +86,13 @@ public class KurentoHandler extends TextWebSocketHandler {
                 handleIceCandidate(session, roomId, memberId, jsonMessage);
                 break;
             case "AUDIO":
-                toggleMediaState(roomId, memberId, "AUDIO", jsonMessage.get("enabled").getAsBoolean());
+                toggleMediaState(roomId, memberId, "AUDIO", jsonMessage);
                 break;
             case "MEDIA":
-                toggleMediaState(roomId, memberId, "MEDIA", jsonMessage.get("enabled").getAsBoolean());
+                toggleMediaState(roomId, memberId, "MEDIA", jsonMessage);
                 break;
             case "DATA":
-                toggleMediaState(roomId, memberId, "DATA", jsonMessage.get("enabled").getAsBoolean());
+                toggleMediaState(roomId, memberId, "DATA", jsonMessage);
                 break;
             case "exit":
                 kurentoManager.removeUserFromChannel(roomId, memberId);
@@ -125,7 +125,14 @@ public class KurentoHandler extends TextWebSocketHandler {
     /**
      * 사용자의 오디오/비디오/화면 공유 상태를 변경하고, 모든 클라이언트에게 업데이트된 유저 목록 전송
      */
-    private void toggleMediaState(String roomId, String userId, String type, boolean enabled) {
+    private void toggleMediaState(String roomId, String userId, String type, JsonObject jsonMessage) {
+        if (!jsonMessage.has("data") || !jsonMessage.getAsJsonObject("data").has("enabled")) {
+            log.error("❌ Enabled Media Status 정보 없음: {}", jsonMessage);
+            return;
+        }
+
+        boolean enabled = jsonMessage.get("enabled").getAsBoolean();
+
         log.info("🔄 {} 공유 상태 변경: {} - {}", type, userId, enabled);
         kurentoManager.updateUserMediaState(roomId, userId, type, enabled);
     }
