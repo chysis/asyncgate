@@ -3,8 +3,7 @@ package com.asyncgate.signaling_server.signaling;
 import com.asyncgate.signaling_server.domain.Member;
 import com.asyncgate.signaling_server.dto.request.JoinRoomRequest;
 import com.asyncgate.signaling_server.dto.response.GetUsersInChannelResponse;
-import com.asyncgate.signaling_server.exception.FailType;
-import com.asyncgate.signaling_server.exception.SignalingServerException;
+import com.asyncgate.signaling_server.entity.type.MemberMediaType;
 import com.asyncgate.signaling_server.infrastructure.client.MemberServiceClient;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -197,9 +196,9 @@ public class KurentoManager {
                             .id(member.getId())
                             .nickname(member.getNickname())
                             .profileImage(member.getProgileImageUrl())
-                            .isMicEnabled(member.isMicEnabled())
-                            .isCameraEnabled(member.isCameraEnabled())
-                            .isScreenSharingEnabled(member.isScreenSharingEnabled())
+                            .isMicEnabled(member.isAudioEnabled())
+                            .isCameraEnabled(member.isMediaEnabled())
+                            .isScreenSharingEnabled(member.isDataEnabled())
                             .build();
                 })
                 .filter(Objects::nonNull)  // 🚀 `null`인 경우 건너뛰기
@@ -209,7 +208,7 @@ public class KurentoManager {
     /**
      * 특정 유저의 미디어 상태 (음성, 영상, 화면 공유) 변경
      */
-    public void updateUserMediaState(String roomId, String userId, String type, boolean enabled) {
+    public void updateUserMediaState(String roomId, String userId, MemberMediaType type, boolean enabled) {
         if (!userStates.containsKey(userId)) {
             log.warn("⚠️ [Kurento] 미디어 상태 업데이트 실패: 존재하지 않는 유저 (userId={})", userId);
             return;
@@ -224,35 +223,35 @@ public class KurentoManager {
         }
 
         switch (type) {
-            case "AUDIO":
+            case AUDIO:
                 if (enabled) {
                     reconnectAudio(userId, endpoint);
                 } else {
                     disconnectAudio(userId, endpoint);
                 }
                 log.info("🔊 [Kurento] Audio 상태 변경: roomId={}, userId={}, enabled={}", roomId, userId, enabled);
-                member.updateMediaState("AUDIO", enabled);
+                member.updateMediaState(MemberMediaType.AUDIO, enabled);
                 break;
 
-            case "MEDIA":
+            case MEDIA:
                 if (enabled) {
                     reconnectVideo(userId, endpoint);
                 } else {
                     disconnectVideo(userId, endpoint);
                 }
                 log.info("📹 [Kurento] Video 상태 변경: roomId={}, userId={}, enabled={}", roomId, userId, enabled);
-                member.updateMediaState("MEDIA", enabled);
+                member.updateMediaState(MemberMediaType.MEDIA, enabled);
                 break;
 
                 // 화면공유
-            case "DATA":
+            case DATA:
                 if (enabled) {
                     reconnectScreenShare(userId, endpoint);
                 } else {
                     disconnectScreenShare(userId, endpoint);
                 }
                 log.info("🖥️ [Kurento] ScreenShare 상태 변경: roomId={}, userId={}, enabled={}", roomId, userId, enabled);
-                member.updateMediaState("DATA", enabled);
+                member.updateMediaState(MemberMediaType.DATA, enabled);
                 break;
 
             default:
@@ -270,7 +269,7 @@ public class KurentoManager {
 
         // ✅ userStates에서 해당 사용자의 상태 업데이트
         if (userStates.containsKey(userId)) {
-            userStates.get(userId).updateMediaState("AUDIO", false);
+            userStates.get(userId).updateMediaState(MemberMediaType.AUDIO, false);
         }
     }
 
@@ -283,7 +282,7 @@ public class KurentoManager {
 
         // ✅ userStates에서 해당 사용자의 상태 업데이트
         if (userStates.containsKey(userId)) {
-            userStates.get(userId).updateMediaState("AUDIO", true);
+            userStates.get(userId).updateMediaState(MemberMediaType.AUDIO, true);
         }
     }
 
@@ -296,7 +295,7 @@ public class KurentoManager {
 
         // ✅ userStates에서 해당 사용자의 상태 업데이트
         if (userStates.containsKey(userId)) {
-            userStates.get(userId).updateMediaState("MEDIA", false);
+            userStates.get(userId).updateMediaState(MemberMediaType.MEDIA, false);
         }
     }
 
@@ -309,7 +308,7 @@ public class KurentoManager {
 
         // ✅ userStates에서 해당 사용자의 상태 업데이트
         if (userStates.containsKey(userId)) {
-            userStates.get(userId).updateMediaState("MEDIA", true);
+            userStates.get(userId).updateMediaState(MemberMediaType.MEDIA, true);
         }
     }
 
@@ -322,7 +321,7 @@ public class KurentoManager {
 
         // ✅ userStates에서 해당 사용자의 상태 업데이트
         if (userStates.containsKey(userId)) {
-            userStates.get(userId).updateMediaState("DATA", true);
+            userStates.get(userId).updateMediaState(MemberMediaType.DATA, true);
         }
     }
 
@@ -335,7 +334,7 @@ public class KurentoManager {
 
         // ✅ userStates에서 해당 사용자의 상태 업데이트
         if (userStates.containsKey(userId)) {
-            userStates.get(userId).updateMediaState("DATA", false);
+            userStates.get(userId).updateMediaState(MemberMediaType.DATA, false);
         }
     }
 

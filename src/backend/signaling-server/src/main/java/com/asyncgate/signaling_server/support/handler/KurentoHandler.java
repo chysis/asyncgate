@@ -1,6 +1,7 @@
 package com.asyncgate.signaling_server.support.handler;
 
 import com.asyncgate.signaling_server.dto.response.GetUsersInChannelResponse;
+import com.asyncgate.signaling_server.entity.type.MemberMediaType;
 import com.asyncgate.signaling_server.security.constant.Constants;
 import com.asyncgate.signaling_server.security.utility.JsonWebTokenUtil;
 import com.asyncgate.signaling_server.signaling.KurentoManager;
@@ -86,13 +87,13 @@ public class KurentoHandler extends TextWebSocketHandler {
                 handleIceCandidate(session, roomId, memberId, jsonMessage);
                 break;
             case "AUDIO":
-                toggleMediaState(roomId, memberId, "AUDIO", jsonMessage);
+                toggleMediaState(roomId, memberId, MemberMediaType.AUDIO, jsonMessage);
                 break;
             case "MEDIA":
-                toggleMediaState(roomId, memberId, "MEDIA", jsonMessage);
+                toggleMediaState(roomId, memberId, MemberMediaType.MEDIA, jsonMessage);
                 break;
             case "DATA":
-                toggleMediaState(roomId, memberId, "DATA", jsonMessage);
+                toggleMediaState(roomId, memberId, MemberMediaType.DATA, jsonMessage);
                 break;
             case "exit":
                 kurentoManager.removeUserFromChannel(roomId, memberId);
@@ -125,7 +126,7 @@ public class KurentoHandler extends TextWebSocketHandler {
     /**
      * 사용자의 오디오/비디오/화면 공유 상태를 변경하고, 모든 클라이언트에게 업데이트된 유저 목록 전송
      */
-    private void toggleMediaState(String roomId, String userId, String type, JsonObject jsonMessage) {
+    private void toggleMediaState(String roomId, String userId, MemberMediaType type, JsonObject jsonMessage) {
         if (!jsonMessage.has("data") || !jsonMessage.getAsJsonObject("data").has("enabled")) {
             log.error("❌ Enabled Media Status 정보 없음: {}", jsonMessage);
             return;
