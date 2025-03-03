@@ -193,6 +193,8 @@ public class KurentoHandler extends TextWebSocketHandler {
                             userJson.addProperty("video", Optional.ofNullable(user.isCameraEnabled()).orElse(false));
                             userJson.addProperty("screen", Optional.ofNullable(user.isScreenSharingEnabled()).orElse(false));
 
+                            userJson.addProperty("is_me", userId != null && user.getId().equals(userId));
+
                             usersArray.add(userJson);
                         });
 
