@@ -60,7 +60,7 @@ public class KurentoManager {
 
         try {
             // 동기적으로 사용자 정보 가져오기
-            Member member = memberServiceClient.fetchMemberById(userId, roomId).block(Duration.ofSeconds(3));
+            Member member = memberServiceClient.fetchMemberById(userId, roomId).block(Duration.ofSeconds(5));
 
             if (member != null) {
                 log.info("✔ 성공적으로 사용자 정보 조회: {}", member);
