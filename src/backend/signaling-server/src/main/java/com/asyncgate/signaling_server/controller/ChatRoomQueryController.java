@@ -1,32 +1,26 @@
 package com.asyncgate.signaling_server.controller;
 
 import com.asyncgate.signaling_server.dto.response.GetICEUrlResponse;
-import com.asyncgate.signaling_server.signaling.ICEManager;
 import com.asyncgate.signaling_server.support.response.SuccessResponse;
+import com.asyncgate.signaling_server.usecase.GetICEUrlUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/room")
+@RequestMapping("/ice")
 @RequiredArgsConstructor
 public class ChatRoomQueryController {
 
-    private final ICEManager iceManager;
-    /**
-     * turn 서버 url 조회 get method
-     */
-    @GetMapping("/turn")
-    public SuccessResponse<GetICEUrlResponse> getTurnServerUrl() {
-        return SuccessResponse.ok(iceManager.getTurnUrl());
-    }
+    private final GetICEUrlUseCase getICEUrlUseCase;
 
     /**
-     * sturn 서버 url 조회 get method
+     * ICE 서버 URL 조회 (TURN/STURN)
      */
-    @GetMapping("/sturn")
-    public SuccessResponse<GetICEUrlResponse> getSTurnServerUrl() {
-        return SuccessResponse.ok(iceManager.getSTurnUrl());
+    @GetMapping
+    public SuccessResponse<GetICEUrlResponse> getICEServerUrl(@RequestParam("type") String type) {
+        return SuccessResponse.ok(getICEUrlUseCase.execute(type));
     }
 }

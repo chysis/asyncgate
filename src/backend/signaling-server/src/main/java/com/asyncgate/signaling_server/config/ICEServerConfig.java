@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @Getter
-public class WebRTCConfig {
+public class ICEServerConfig {
 
     @Value("${stun.server.urls}")
     private String stunServer;
