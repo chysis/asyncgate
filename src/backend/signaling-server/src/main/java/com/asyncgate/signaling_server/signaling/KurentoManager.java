@@ -143,7 +143,7 @@ public class KurentoManager {
     }
 
     /**
-     * ICE Candidate를 특정 유저에게 추가하고 같은 방의 모든 클라이언트에게 전송
+     * 클라이언트가 보낸 ICE 후보를 Kurento에 추가하고, Kurento가 생성한 ICE 후보를 클라이언트에게 전송하는 메서드
      */
     public void sendIceCandidates(WebSocketSession session, String roomId, String userId, IceCandidate candidate) {
         WebRtcEndpoint endpoint = getUserEndpoint(roomId, userId);
@@ -153,23 +153,25 @@ public class KurentoManager {
             return;
         }
 
-        // ICE Candidate 추가
+        // 클라이언트가 보낸 ICE Candidate를 Kurento에 추가
         endpoint.addIceCandidate(candidate);
-        log.info("🧊 [Kurento] ICE Candidate 추가 완료: roomId={}, userId={}, candidate={}", roomId, userId, candidate);
+        log.info("🧊 [Kurento] 클라이언트의 ICE Candidate 추가 완료: roomId={}, userId={}, candidate={}", roomId, userId, candidate);
 
-        // ICE Candidate 메시지 생성
-        JsonObject candidateMessage = new JsonObject();
-        candidateMessage.addProperty("type", "iceCandidate");  // id → type 통일
-        candidateMessage.addProperty("userId", userId);
-        candidateMessage.add("candidate", new Gson().toJsonTree(candidate));
+        // ✅ Kurento가 생성한 ICE 후보를 자동으로 클라이언트로 전송하도록 리스너 등록
+        endpoint.addIceCandidateFoundListener(event -> {
+            JsonObject candidateMessage = new JsonObject();
+            candidateMessage.addProperty("type", "iceCandidate");  // id → type 통일
+            candidateMessage.addProperty("userId", userId);
+            candidateMessage.add("candidate", new Gson().toJsonTree(event.getCandidate())); // 🔥 Kurento가 생성한 ICE 후보
 
-        try {
-            // WebSocket을 통해 ICE Candidate 전송
-            session.sendMessage(new TextMessage(candidateMessage.toString()));
-            log.info("📡 [Kurento] ICE Candidate 전송 완료: roomId={}, toUserId={}", roomId, userId);
-        } catch (IOException e) {
-            log.error("❌ ICE Candidate 전송 실패: roomId={}, toUserId={}", roomId, userId, e);
-        }
+            try {
+                // WebSocket을 통해 ICE Candidate 전송
+                session.sendMessage(new TextMessage(candidateMessage.toString()));
+                log.info("📡 [Kurento] ICE Candidate 클라이언트로 전송 완료: roomId={}, toUserId={}", roomId, userId);
+            } catch (IOException e) {
+                log.error("❌ ICE Candidate 전송 실패: roomId={}, toUserId={}", roomId, userId, e);
+            }
+        });
     }
 
     /**
