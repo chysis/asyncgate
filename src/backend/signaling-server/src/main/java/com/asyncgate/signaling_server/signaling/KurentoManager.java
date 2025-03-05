@@ -86,6 +86,9 @@ public class KurentoManager {
 
                 log.info("✅ 사용자 데이터 및 엔드포인트 저장 완료: roomId={}, userId={}", roomId, userId);
 
+                // ICE Candidate 수집 시작
+                endpoint.gatherCandidates();
+
                 // 자동으로 토픽 전송
                 getUsersInChannel(roomId);
 
@@ -152,9 +155,6 @@ public class KurentoManager {
         // 클라이언트에게 SDP Answer 전송
         messagingTemplate.convertAndSend("/topic/answer/" + message.data().roomId(),
                 new KurentoAnswerResponse("sdpAnswer", sdpAnswer));
-
-        // ICE Candidate 수집
-        endpoint.gatherCandidates();
     }
 
     /**

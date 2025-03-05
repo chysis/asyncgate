@@ -61,6 +61,12 @@ POST {{host_url}}/room/{{signaling.API_2_0_CREATE_CHAT_ROOM.chat_room_id}}/join
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 
+{
+  "audio_enabled": true,
+  "media_enabled": true,
+  "data_enabled": true
+}
+
 
 ### 2.2 채널 참여 중인 유저 조회
 // @no-log
