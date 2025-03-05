@@ -2,25 +2,25 @@ package com.asyncgate.signaling_server.signaling;
 
 import com.asyncgate.signaling_server.domain.Member;
 import com.asyncgate.signaling_server.dto.request.JoinRoomRequest;
+import com.asyncgate.signaling_server.dto.request.KurentoOfferRequest;
 import com.asyncgate.signaling_server.dto.response.GetUsersInChannelResponse;
+import com.asyncgate.signaling_server.dto.response.KurentoAnswerResponse;
 import com.asyncgate.signaling_server.entity.type.MemberMediaType;
 import com.asyncgate.signaling_server.infrastructure.client.MemberServiceClient;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
 import org.kurento.client.*;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketSession;
 
 @Slf4j
 @Service
@@ -35,6 +35,8 @@ public class KurentoManager {
     private final Map<String, Map<String, WebRtcEndpoint>> roomEndpoints = new ConcurrentHashMap<>();
 
     private final Map<String, Member> userStates = new ConcurrentHashMap<>();
+
+    private final SimpMessagingTemplate messagingTemplate;
 
     /**
      * 특정 방에 대한 MediaPipeline을 가져오거나 새로 생성
@@ -56,11 +58,11 @@ public class KurentoManager {
                 .computeIfAbsent(roomId, k -> new ConcurrentHashMap<>())
                 .computeIfAbsent(userId, k -> new WebRtcEndpoint.Builder(pipeline).build());
 
-        log.info("🛠 WebRTC Endpoint 생성 또는 가져오기 완료: roomId={}, userId={}", roomId, userId);
+        // log.info("🛠 WebRTC Endpoint 생성 또는 가져오기 완료: roomId={}, userId={}", roomId, userId);
 
         try {
             // 동기적으로 사용자 정보 가져오기
-            Member member = memberServiceClient.fetchMemberById(userId, roomId, request).block(Duration.ofSeconds(5));
+            Member member = memberServiceClient.fetchMemberById(userId, roomId, request).block(Duration.ofSeconds(7));
 
             if (member != null) {
                 log.info("✔ 성공적으로 사용자 정보 조회: {}", member);
@@ -72,8 +74,7 @@ public class KurentoManager {
                     candidateMessage.addProperty("userId", member.getId());
                     candidateMessage.add("candidate", new Gson().toJsonTree(event.getCandidate()));
 
-                    log.info("🧊 ICE Candidate 전송: roomId={}, userId={}, candidate={}",
-                            roomId, member.getId(), event.getCandidate());
+                    // log.info("🧊 ICE Candidate 전송: roomId={}, userId={}, candidate={}", roomId, member.getId(), event.getCandidate());
                 });
 
                 // 사용자 엔드포인트 저장 (음성, 화상용)
@@ -87,8 +88,7 @@ public class KurentoManager {
                 log.warn("⚠ 사용자 정보를 찾을 수 없음: roomId={}, userId={}", roomId, userId);
             }
         } catch (Exception e) {
-            log.error("❌ Member 정보 조회 실패 (동기 처리): roomId={}, userId={}, message={}",
-                    roomId, userId, e.getMessage());
+            log.error("❌ Member 정보 조회 실패 (동기 처리): roomId={}, userId={}, message={}", roomId, userId, e.getMessage());
         }
 
         return endpoint;
@@ -107,8 +107,10 @@ public class KurentoManager {
     /**
      * SDP Offer를 처리하고 Answer를 반환
      */
-    public void processSdpOffer(String roomId, String userId, String sdpOffer, Consumer<String> callback) {
-        WebRtcEndpoint endpoint = getUserEndpoint(roomId, userId);
+    public void processSdpOffer(KurentoOfferRequest message, StompHeaderAccessor accessor) {
+        String userId = (String) accessor.getSessionAttributes().get("userId");
+        log.warn("⚠️ user id : {}", userId);
+        WebRtcEndpoint endpoint = getUserEndpoint(message.data().roomId(), userId);
 
         System.out.println("processSdpOffer 접근함, endpoint get 성공" + endpoint);
 
@@ -118,82 +120,67 @@ public class KurentoManager {
         }
 
         // SDP Offer 처리 및 SDP Answer 생성
-        String sdpAnswer = endpoint.processOffer(sdpOffer);
+        String sdpAnswer = endpoint.processOffer(message.data().sdpOffer());
 
         System.out.println("sdp 처리 및 sdp answer 생성" + sdpAnswer);
 
+        // 클라이언트에게 SDP Answer 전송
+        messagingTemplate.convertAndSend("/topic/webrtc/" + message.data().roomId(),
+                new KurentoAnswerResponse("sdpAnswer", sdpAnswer));
+
         // ICE Candidate 수집
         endpoint.gatherCandidates();
-
-        log.info("📡 [Kurento] SDP Offer 처리 완료: roomId={}, userId={}", roomId, userId);
-
-        // SDP Answer 반환
-        callback.accept(sdpAnswer);
-    }
-
-    // SDP Offer & Answer 조회
-    public String getSdpOffer(String roomId, String userId) {
-        WebRtcEndpoint endpoint = getUserEndpoint(roomId, userId);
-        return endpoint != null ? endpoint.getLocalSessionDescriptor() : null;
-    }
-
-    public String getSdpAnswer(String roomId, String userId) {
-        WebRtcEndpoint endpoint = getUserEndpoint(roomId, userId);
-        return endpoint != null ? endpoint.getRemoteSessionDescriptor() : null;
     }
 
     /**
      * 클라이언트가 보낸 ICE 후보를 Kurento에 추가하고, Kurento가 생성한 ICE 후보를 클라이언트에게 전송하는 메서드
      */
-    public void sendIceCandidates(WebSocketSession session, String roomId, String userId, IceCandidate candidate) {
-        WebRtcEndpoint endpoint = getUserEndpoint(roomId, userId);
+    public void addIceCandidates(KurentoOfferRequest message, StompHeaderAccessor accessor) {
+        String userId = (String) accessor.getSessionAttributes().get("userId");
+        log.warn("⚠️ user id : {}", userId);
+        WebRtcEndpoint endpoint = getUserEndpoint(message.data().roomId(), userId);
 
-        if (endpoint == null) {
-            log.error("❌ [Kurento] WebRTC Endpoint 없음: roomId={}, userId={}", roomId, userId);
-            return;
-        }
-
-        // 클라이언트가 보낸 ICE Candidate를 Kurento에 추가
-        endpoint.addIceCandidate(candidate);
-
-        endpoint.getICECandidatePairs().forEach(pair -> {
-            log.info("🧊 [Kurento] ICE Candidate Pair: {}", pair);
-        });
-        endpoint.getICECandidatePairs().forEach(pair -> {
-            log.info("🧊 [Kurento] ICE Candidate Pair 상태: LocalCandidate={}, RemoteCandidate={}, StreamId={}",
-                    pair.getLocalCandidate(), pair.getRemoteCandidate(), pair.getStreamId());
-        });
-
-        // ✅ Kurento가 생성한 ICE 후보를 자동으로 클라이언트로 전송하도록 리스너 등록
-        endpoint.addIceCandidateFoundListener(event -> {
-            JsonObject candidateMessage = new JsonObject();
-            candidateMessage.addProperty("type", "iceCandidate");  // id → type 통일
-            candidateMessage.addProperty("userId", userId);
-            candidateMessage.add("candidate", new Gson().toJsonTree(event.getCandidate())); // 🔥 Kurento가 생성한 ICE 후보
-
-            try {
-                // WebSocket을 통해 ICE Candidate 전송
-                session.sendMessage(new TextMessage(candidateMessage.toString()));
-                log.info("📡 [Kurento] ICE Candidate 클라이언트로 전송 완료: roomId={}, toUserId={}", roomId, userId);
-            } catch (IOException e) {
-                log.error("❌ ICE Candidate 전송 실패: roomId={}, toUserId={}", roomId, userId, e);
-            }
-        });
+        endpoint.addIceCandidate(message.data().candidate());
     }
 
     /**
-     * 특정 방의 모든 유저 목록 반환
+     * ICE Candidate를 서버에서 클라이언트로 전송
      */
-    public List<GetUsersInChannelResponse.UserInRoom> getUsersInChannel(String channelId) {
-        if (!roomEndpoints.containsKey(channelId)) {
-            log.warn("🚨 [Kurento] 조회 실패: 존재하지 않는 채널 (channelId={})", channelId);
-            return Collections.emptyList();
+    public void startIceCandidateListener(KurentoOfferRequest message, StompHeaderAccessor accessor) {
+        String userId = (String) accessor.getSessionAttributes().get("userId");
+        log.warn("⚠️ user id : {}", userId);
+        WebRtcEndpoint endpoint = getUserEndpoint(message.data().roomId(), userId);
+
+        endpoint.gatherCandidates(); // ICE Candidate 검색 시작
+
+        endpoint.addIceCandidateFoundListener(event -> {
+            IceCandidate candidate = event.getCandidate();
+            JsonObject candidateMessage = new JsonObject();
+            candidateMessage.addProperty("type", "iceCandidate");
+            candidateMessage.add("candidate", new Gson().toJsonTree(candidate));
+
+            // ✅ 클라이언트에게 ICE Candidate 전송
+            messagingTemplate.convertAndSend("/topic/webrtc/" + message.data().roomId(), candidateMessage.toString());
+        });
+    }
+
+
+    /**
+     * 특정 방의 모든 유저 목록을 클라이언트에게 직접 전송
+     */
+    public void getUsersInChannel(KurentoOfferRequest message) {
+        String roomId = message.data().roomId();
+
+        if (!roomEndpoints.containsKey(roomId)) {
+            log.warn("🚨 [Kurento] 조회 실패: 존재하지 않는 채널 (channelId={})", roomId);
+            messagingTemplate.convertAndSend("/topic/webrtc/" + roomId, Collections.emptyList());
+            return;
         }
 
         log.info("📡 [Kurento] userStates 현재 상태: {}", userStates);
         userStates.forEach((key, value) -> log.info("🔍 userId={}, member={}", key, value));
 
-        return roomEndpoints.get(channelId).keySet().stream()
+        List<GetUsersInChannelResponse.UserInRoom> users = roomEndpoints.get(roomId).keySet().stream()
                 .map(userId -> {
                     Member member = userStates.get(userId);
                     if (member == null) {
@@ -212,55 +199,64 @@ public class KurentoManager {
                 })
                 .filter(Objects::nonNull)  // 🚀 `null`인 경우 건너뛰기
                 .collect(Collectors.toList());
+
+        // ✅ 클라이언트에게 STOMP 메시지 전송 (유저 목록)
+        messagingTemplate.convertAndSend("/topic/webrtc/" + roomId, users);
+        log.info("📡 [STOMP] 유저 목록 전송 완료 - roomId: {}, userCount: {}", roomId, users.size());
     }
 
     /**
      * 특정 유저의 미디어 상태 (음성, 영상, 화면 공유) 변경
      */
-    public void updateUserMediaState(String roomId, String userId, MemberMediaType type, boolean enabled) {
+    public void updateUserMediaState(KurentoOfferRequest message, StompHeaderAccessor accessor) {
+        String userId = (String) accessor.getSessionAttributes().get("userId");
+        log.warn("⚠️ user id : {}", userId);
+        WebRtcEndpoint endpoint = getUserEndpoint(message.data().roomId(), userId);
+
         if (!userStates.containsKey(userId)) {
             log.warn("⚠️ [Kurento] 미디어 상태 업데이트 실패: 존재하지 않는 유저 (userId={})", userId);
             return;
         }
 
         Member member = userStates.get(userId);
-        WebRtcEndpoint endpoint = getUserEndpoint(roomId, userId);
 
         if (endpoint == null) {
-            log.warn("⚠️ [Kurento] WebRTC Endpoint 없음: roomId={}, userId={}", roomId, userId);
+            log.warn("⚠️ [Kurento] WebRTC Endpoint 없음: roomId={}, userId={}", message.data().roomId(), userId);
             return;
         }
 
+        MemberMediaType type = MemberMediaType.valueOf(message.type());
+
         switch (type) {
             case AUDIO:
-                if (enabled) {
+                if (message.data().enabled()) {
                     reconnectAudio(userId, endpoint);
                 } else {
                     disconnectAudio(userId, endpoint);
                 }
-                log.info("🔊 [Kurento] Audio 상태 변경: roomId={}, userId={}, enabled={}", roomId, userId, enabled);
-                member.updateMediaState(MemberMediaType.AUDIO, enabled);
+                log.info("🔊 [Kurento] Audio 상태 변경: roomId={}, userId={}, enabled={}", message.data().roomId(), userId, message.data().enabled());
+                member.updateMediaState(MemberMediaType.AUDIO, message.data().enabled());
                 break;
 
             case MEDIA:
-                if (enabled) {
+                if (message.data().enabled()) {
                     reconnectVideo(userId, endpoint);
                 } else {
                     disconnectVideo(userId, endpoint);
                 }
-                log.info("📹 [Kurento] Video 상태 변경: roomId={}, userId={}, enabled={}", roomId, userId, enabled);
-                member.updateMediaState(MemberMediaType.MEDIA, enabled);
+                log.info("📹 [Kurento] Video 상태 변경: roomId={}, userId={}, enabled={}", message.data().roomId(), userId, message.data().enabled());
+                member.updateMediaState(MemberMediaType.MEDIA, message.data().enabled());
                 break;
 
                 // 화면공유
             case DATA:
-                if (enabled) {
+                if (message.data().enabled()) {
                     reconnectScreenShare(userId, endpoint);
                 } else {
                     disconnectScreenShare(userId, endpoint);
                 }
-                log.info("🖥️ [Kurento] ScreenShare 상태 변경: roomId={}, userId={}, enabled={}", roomId, userId, enabled);
-                member.updateMediaState(MemberMediaType.DATA, enabled);
+                log.info("🖥️ [Kurento] ScreenShare 상태 변경: roomId={}, userId={}, enabled={}", message.data().roomId(), userId, message.data().enabled());
+                member.updateMediaState(MemberMediaType.DATA, message.data().enabled());
                 break;
 
             default:
@@ -350,26 +346,28 @@ public class KurentoManager {
     /**
      * 방에서 특정 사용자 제거
      */
-    public void removeUserFromChannel(String roomId, String userId) {
-        if (!roomEndpoints.containsKey(roomId) || !roomEndpoints.get(roomId).containsKey(userId)) {
-            log.warn("⚠️ [Kurento] 사용자 제거 실패: 존재하지 않는 사용자 (roomId={}, userId={})", roomId, userId);
+    public void removeUserFromChannel(KurentoOfferRequest message, StompHeaderAccessor accessor) {
+        String userId = (String) accessor.getSessionAttributes().get("userId");
+
+        if (!roomEndpoints.containsKey(message.data().roomId()) || !roomEndpoints.get(message.data().roomId()).containsKey(userId)) {
+            log.warn("⚠️ [Kurento] 사용자 제거 실패: 존재하지 않는 사용자 (roomId={}, userId={})", message.data().roomId(), userId);
             return;
         }
 
         // WebRTC Endpoint 제거
-        roomEndpoints.get(roomId).get(userId).release();
-        roomEndpoints.get(roomId).remove(userId);
+        roomEndpoints.get(message.data().roomId()).get(userId).release();
+        roomEndpoints.get(message.data().roomId()).remove(userId);
 
         // 사용자 정보 제거
         userStates.remove(userId);
 
-        log.info("🛑 [Kurento] 사용자 제거 완료: roomId={}, userId={}", roomId, userId);
+        log.info("🛑 [Kurento] 사용자 제거 완료: roomId={}, userId={}", message.data().roomId(), userId);
     }
 
     /**
      * 방을 제거함
      */
-    public void removeRoom(String roomId) {
+    public void removeRoom(final String roomId) {
         if (roomEndpoints.containsKey(roomId)) {
             roomEndpoints.get(roomId).values().forEach(WebRtcEndpoint::release);
             roomEndpoints.remove(roomId);

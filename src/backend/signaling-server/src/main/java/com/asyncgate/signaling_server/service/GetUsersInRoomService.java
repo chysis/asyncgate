@@ -19,7 +19,7 @@ public class GetUsersInRoomService implements GetUsersInRoomUseCase {
     @Override
     public GetUsersInChannelResponse execute(final String roomId) {
         System.out.println("GetUsersInRoomService.execute 호출됨, roomId: " + roomId);
-
+/*
         List<GetUsersInChannelResponse.UserInRoom> users = kurentoManager.getUsersInChannel(roomId);
 
         try {
@@ -34,5 +34,8 @@ public class GetUsersInRoomService implements GetUsersInRoomUseCase {
                 .channelId(roomId)
                 .users(users)
                 .build();
+
+ */
+        return null;
     }
 }

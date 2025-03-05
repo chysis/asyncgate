@@ -15,7 +15,7 @@ import com.asyncgate.signaling_server.support.response.SuccessResponse;
 public class ChatRoomCommandController {
 
     private final JoinRoomUseCase joinRoomUseCase;
-    private final GetUsersInRoomUseCase getUsersInRoomUseCase;
+    // private final GetUsersInRoomUseCase getUsersInRoomUseCase;
 
     /**
      * 채널 참여
@@ -26,13 +26,12 @@ public class ChatRoomCommandController {
         return SuccessResponse.ok("room: " + roomId + "에 user: " + memberId + "가 참여하였습니다.");
     }
 
-    /**
-     * 채널에 참여 중인 유저 조회
-     */
+    /*
     @GetMapping("/{room_id}/users")
     public SuccessResponse<GetUsersInChannelResponse> getUsersInRoom(@PathVariable("room_id") String roomId) {
         return SuccessResponse.ok(getUsersInRoomUseCase.execute(roomId));
     }
+    */
 
     /**
      *
