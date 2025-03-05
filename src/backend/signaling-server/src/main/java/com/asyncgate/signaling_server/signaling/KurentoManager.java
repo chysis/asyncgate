@@ -51,7 +51,7 @@ public class KurentoManager {
     /**
      * WebRTC 엔드포인트 생성 및 ICE Candidate 리스너 설정
      */
-    public synchronized String getOrCreateEndpoint(String roomId, String userId, JoinRoomRequest request) {
+    public synchronized void getOrCreateEndpoint(String roomId, String userId, JoinRoomRequest request) {
         MediaPipeline pipeline = getOrCreatePipeline(roomId);
 
         // WebRtcEndpoint 가져오기 또는 생성
@@ -89,29 +89,16 @@ public class KurentoManager {
                 // ICE Candidate 수집 시작
                 endpoint.gatherCandidates();
 
-                // SDP Offer 처리 및 SDP Answer 생성
-                String sdpAnswer = endpoint.processOffer(request.sdpOffer());
-
-                System.out.println("sdp 처리 및 sdp answer 생성" + sdpAnswer);
-
-                // 클라이언트에게 SDP Answer 전송
-                messagingTemplate.convertAndSend("/topic/answer/" + roomId,
-                        new KurentoAnswerResponse("sdpAnswer", sdpAnswer));
-
                 // 자동으로 토픽 전송
                 getUsersInChannel(roomId);
 
                 // kurento offer를 전송
                 // sendKurentoOffer(roomId, userId);
-
-                return endpoint.generateOffer();
             } else {
                 log.warn("⚠ 사용자 정보를 찾을 수 없음: roomId={}, userId={}", roomId, userId);
-                return "";
             }
         } catch (Exception e) {
             log.error("❌ Member 정보 조회 실패 (동기 처리): roomId={}, userId={}, message={}", roomId, userId, e.getMessage());
-            return "";
         }
     }
 
