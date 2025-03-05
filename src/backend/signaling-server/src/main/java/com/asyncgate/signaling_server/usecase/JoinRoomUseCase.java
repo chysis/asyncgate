@@ -10,5 +10,5 @@ public interface JoinRoomUseCase {
      * @param memberId
      * @param request
      */
-    void execute(final String roomId, final String memberId, final JoinRoomRequest request);
+    String execute(final String roomId, final String memberId, final JoinRoomRequest request);
 }

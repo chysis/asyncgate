@@ -22,8 +22,8 @@ public class ChatRoomCommandController {
      */
     @PostMapping("/{room_id}/join")
     public SuccessResponse<String> joinRoom(@PathVariable("room_id") final String roomId, @MemberID final String memberId, @RequestBody JoinRoomRequest request) {
-        joinRoomUseCase.execute(roomId, memberId, request);
-        return SuccessResponse.ok("room: " + roomId + "에 user: " + memberId + "가 참여하였습니다.");
+        String sdpOffer = joinRoomUseCase.execute(roomId, memberId, request);
+        return SuccessResponse.ok(sdpOffer);
     }
 
     /*
