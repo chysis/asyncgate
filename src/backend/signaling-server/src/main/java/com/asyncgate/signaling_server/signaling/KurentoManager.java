@@ -136,6 +136,22 @@ public class KurentoManager {
     }
 
     /**
+     * SDP Answer를 처리하고 WebRTC 연결
+     */
+    public void processSdpAnswer(KurentoOfferRequest message, StompHeaderAccessor accessor) {
+        String userId = (String) accessor.getSessionAttributes().get("userId");
+        log.warn("⚠️ user id : {}", userId);
+        WebRtcEndpoint endpoint = getUserEndpoint(message.data().roomId(), userId);
+
+        if (endpoint.getMediaState() == MediaState.CONNECTED) {
+            log.warn("⚠️ 이미 SDP 협상이 완료된 상태입니다. 새로운 Answer를 처리하지 않습니다.");
+            return;
+        }
+
+        endpoint.processAnswer(message.data().sdpOffer());
+    }
+
+    /**
      * 클라이언트가 보낸 ICE 후보를 Kurento에 추가하고, Kurento가 생성한 ICE 후보를 클라이언트에게 전송하는 메서드
      */
     public void addIceCandidates(KurentoOfferRequest message, StompHeaderAccessor accessor) {

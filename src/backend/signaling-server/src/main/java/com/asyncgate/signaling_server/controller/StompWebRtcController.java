@@ -30,6 +30,15 @@ public class StompWebRtcController {
     }
 
     /**
+     *
+     */
+    @MessageMapping("/answer")
+    public void handleAnswer(KurentoOfferRequest message, StompHeaderAccessor accessor) {
+        // 메시지 처리 및 Kurento에서 사용자 연결
+        kurentoManager.processSdpAnswer(message, accessor);
+    }
+
+    /**
      * ICE Candidate 메시지 처리
      */
     @MessageMapping("/candidate")
