@@ -22,6 +22,10 @@ public record KurentoOfferRequest(
             String sdpOffer,
 
             @Nullable
+            @JsonProperty("sdp_answer")
+            String sdpAnswer,
+
+            @Nullable
             @JsonProperty("candidate")
             IceCandidate candidate,
 

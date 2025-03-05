@@ -148,7 +148,7 @@ public class KurentoManager {
             return;
         }
 
-        endpoint.processAnswer(message.data().sdpOffer());
+        endpoint.processAnswer(message.data().sdpAnswer());
     }
 
     /**
