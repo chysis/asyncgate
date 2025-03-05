@@ -137,7 +137,7 @@ public class KurentoManager {
      */
     public void processSdpOffer(KurentoOfferRequest message, StompHeaderAccessor accessor) {
         String userId = (String) accessor.getSessionAttributes().get("userId");
-        log.warn("⚠️ user id : {}", userId);
+        log.warn("⚠️ user id : {}, roomId: {}", userId, message.data().roomId());
         WebRtcEndpoint endpoint = getUserEndpoint(message.data().roomId(), userId);
 
         System.out.println("processSdpOffer 접근함, endpoint get 성공" + endpoint);
