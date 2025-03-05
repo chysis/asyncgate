@@ -9,8 +9,7 @@ import com.asyncgate.signaling_server.signaling.KurentoManager;
 import com.asyncgate.signaling_server.support.handler.KurentoHandler;
 import org.kurento.client.KurentoClient;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.*;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
@@ -36,12 +35,14 @@ public class KurentoConfig implements WebSocketMessageBrokerConfigurer {
 
     private final FilterChannelInterceptor filterChannelInterceptor;
     private final WebSocketHandshakeInterceptor webSocketHandshakeInterceptor;
+
+    @Lazy
     private final SimpMessagingTemplate messagingTemplate;
     private final WebClientUtil webClientUtil;
 
     public KurentoConfig(FilterChannelInterceptor filterChannelInterceptor,
                          WebSocketHandshakeInterceptor webSocketHandshakeInterceptor,
-                         SimpMessagingTemplate messagingTemplate,
+                         @Lazy SimpMessagingTemplate messagingTemplate,
                          WebClientUtil webClientUtil) {
         this.filterChannelInterceptor = filterChannelInterceptor;
         this.webSocketHandshakeInterceptor = webSocketHandshakeInterceptor;
