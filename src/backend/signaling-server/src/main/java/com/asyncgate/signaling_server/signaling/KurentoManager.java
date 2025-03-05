@@ -5,6 +5,7 @@ import com.asyncgate.signaling_server.dto.request.JoinRoomRequest;
 import com.asyncgate.signaling_server.dto.request.KurentoOfferRequest;
 import com.asyncgate.signaling_server.dto.response.GetUsersInChannelResponse;
 import com.asyncgate.signaling_server.dto.response.KurentoAnswerResponse;
+import com.asyncgate.signaling_server.dto.response.KurentoOfferResponse;
 import com.asyncgate.signaling_server.entity.type.MemberMediaType;
 import com.asyncgate.signaling_server.infrastructure.client.MemberServiceClient;
 import com.google.gson.Gson;
@@ -87,6 +88,9 @@ public class KurentoManager {
 
                 // 자동으로 토픽 전송
                 getUsersInChannel(roomId);
+
+                // kurento offer를 전송
+                sendKurentoOffer(roomId, userId);
             } else {
                 log.warn("⚠ 사용자 정보를 찾을 수 없음: roomId={}, userId={}", roomId, userId);
             }
@@ -105,6 +109,22 @@ public class KurentoManager {
         }
 
         return roomEndpoints.get(roomId).get(userId);
+    }
+
+    /**
+     * 클라이언트에게 SDP Offer를 먼저 보내고, 클라이언트의 Answer를 받는 방식
+     */
+    public void sendKurentoOffer(String roomId, String userId) {
+        WebRtcEndpoint endpoint = getUserEndpoint(roomId, userId);
+
+        // Kurento가 Offer 생성
+        String sdpOffer = endpoint.generateOffer(); // <-- 여기서 Kurento가 Offer를 생성
+
+        // 클라이언트에게 SDP Offer 전송
+        messagingTemplate.convertAndSend("/topic/offer/" + roomId,
+                new KurentoOfferResponse("sdpOffer", sdpOffer));
+
+        log.info("🎬 Kurento가 클라이언트에게 Offer 전송 완료: {}", sdpOffer);
     }
 
     /**
