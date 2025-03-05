@@ -44,6 +44,8 @@ public class StompWebRtcController {
     @MessageMapping("/candidate")
     public void handleIceCandidate(KurentoOfferRequest message, StompHeaderAccessor accessor) {
 
+        System.out.println("addCandidate 접근 합니다 !!!!!!!!!!!!!!!!!!!!.");
+
         // Kurento에 ICE Candidate 전달
         kurentoManager.addIceCandidates(message, accessor);
     }
