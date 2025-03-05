@@ -128,7 +128,7 @@ public class KurentoManager {
         System.out.println("sdp 처리 및 sdp answer 생성" + sdpAnswer);
 
         // 클라이언트에게 SDP Answer 전송
-        messagingTemplate.convertAndSend("/topic/webrtc/" + message.data().roomId(),
+        messagingTemplate.convertAndSend("/topic/answer/" + message.data().roomId(),
                 new KurentoAnswerResponse("sdpAnswer", sdpAnswer));
 
         // ICE Candidate 수집
@@ -163,7 +163,7 @@ public class KurentoManager {
             candidateMessage.add("candidate", new Gson().toJsonTree(candidate));
 
             // ✅ 클라이언트에게 ICE Candidate 전송
-            messagingTemplate.convertAndSend("/topic/webrtc/" + message.data().roomId(), candidateMessage.toString());
+            messagingTemplate.convertAndSend("/topic/candidate/" + message.data().roomId(), candidateMessage.toString());
         });
     }
 
@@ -175,7 +175,7 @@ public class KurentoManager {
 
         if (!roomEndpoints.containsKey(roomId)) {
             log.warn("🚨 [Kurento] 조회 실패: 존재하지 않는 채널 (channelId={})", roomId);
-            messagingTemplate.convertAndSend("/topic/webrtc/" + roomId, Collections.emptyList());
+            messagingTemplate.convertAndSend("/topic/users/" + roomId, Collections.emptyList());
             return;
         }
 
@@ -203,7 +203,7 @@ public class KurentoManager {
                 .collect(Collectors.toList());
 
         // ✅ 클라이언트에게 STOMP 메시지 전송 (유저 목록)
-        messagingTemplate.convertAndSend("/topic/webrtc/" + roomId, users);
+        messagingTemplate.convertAndSend("/topic/users/" + roomId, users);
         log.info("📡 [STOMP] 유저 목록 전송 완료 - roomId: {}, userCount: {}", roomId, users.size());
     }
 
