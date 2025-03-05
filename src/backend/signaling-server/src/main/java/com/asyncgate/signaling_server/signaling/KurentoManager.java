@@ -180,7 +180,7 @@ public class KurentoManager {
     public void addIceCandidates(KurentoOfferRequest message, StompHeaderAccessor accessor) {
         System.out.println("addCandidate 접근 합니다.");
         String userId = (String) accessor.getSessionAttributes().get("userId");
-        log.warn("⚠️ user id : {}, roomId : {}", userId, message.data().roomId());
+        log.warn("⚠️ user id : {}, roomId : {}, candidate : {}", userId, message.data().roomId(), message.data().candidate());
         WebRtcEndpoint endpoint = getUserEndpoint(message.data().roomId(), userId);
 
         endpoint.addIceCandidate(message.data().candidate());
