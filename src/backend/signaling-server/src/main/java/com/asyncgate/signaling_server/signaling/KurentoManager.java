@@ -89,6 +89,15 @@ public class KurentoManager {
                 // ICE Candidate 수집 시작
                 endpoint.gatherCandidates();
 
+                // SDP Offer 처리 및 SDP Answer 생성
+                String sdpAnswer = endpoint.processOffer(request.sdpOffer());
+
+                System.out.println("sdp 처리 및 sdp answer 생성" + sdpAnswer);
+
+                // 클라이언트에게 SDP Answer 전송
+                messagingTemplate.convertAndSend("/topic/answer/" + roomId,
+                        new KurentoAnswerResponse("sdpAnswer", sdpAnswer));
+
                 // 자동으로 토픽 전송
                 getUsersInChannel(roomId);
 
