@@ -148,6 +148,8 @@ public class KurentoManager {
             return;
         }
 
+        endpoint.gatherCandidates(); // ICE Candidate 검색 시작
+
         // SDP Offer 처리 및 SDP Answer 생성
         String sdpAnswer = endpoint.processOffer(message.data().sdpOffer());
 
@@ -198,8 +200,6 @@ public class KurentoManager {
         String userId = (String) accessor.getSessionAttributes().get("userId");
         log.warn("⚠️ user id : {}", userId);
         WebRtcEndpoint endpoint = getUserEndpoint(message.data().roomId(), userId);
-
-        endpoint.gatherCandidates(); // ICE Candidate 검색 시작
 
         endpoint.addIceCandidateFoundListener(event -> {
             IceCandidate candidate = event.getCandidate();
