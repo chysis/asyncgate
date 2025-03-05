@@ -48,14 +48,6 @@ public class StompWebRtcController {
     }
 
     /**
-     * 유저 정보 반환
-     */
-    @MessageMapping("/users")
-    public void getUsersInRoom(KurentoOfferRequest message, StompHeaderAccessor accessor) {
-        kurentoManager.getUsersInChannel(message);
-    }
-
-    /**
      * WebRTC 종료 처리
      */
     @MessageMapping("/exit")

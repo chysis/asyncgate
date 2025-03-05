@@ -84,6 +84,9 @@ public class KurentoManager {
                 userStates.put(userId, member);
 
                 log.info("✅ 사용자 데이터 및 엔드포인트 저장 완료: roomId={}, userId={}", roomId, userId);
+
+                // 자동으로 토픽 전송
+                getUsersInChannel(roomId);
             } else {
                 log.warn("⚠ 사용자 정보를 찾을 수 없음: roomId={}, userId={}", roomId, userId);
             }
@@ -168,8 +171,7 @@ public class KurentoManager {
     /**
      * 특정 방의 모든 유저 목록을 클라이언트에게 직접 전송
      */
-    public void getUsersInChannel(KurentoOfferRequest message) {
-        String roomId = message.data().roomId();
+    public void getUsersInChannel(String roomId) {
 
         if (!roomEndpoints.containsKey(roomId)) {
             log.warn("🚨 [Kurento] 조회 실패: 존재하지 않는 채널 (channelId={})", roomId);
