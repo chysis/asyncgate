@@ -3,6 +3,7 @@ package com.asyncgate.signaling_server.controller;
 import com.asyncgate.signaling_server.dto.request.JoinRoomRequest;
 import com.asyncgate.signaling_server.dto.response.GetUsersInChannelResponse;
 import com.asyncgate.signaling_server.security.annotation.MemberID;
+import com.asyncgate.signaling_server.usecase.ExitRoomUseCase;
 import com.asyncgate.signaling_server.usecase.GetUsersInRoomUseCase;
 import com.asyncgate.signaling_server.usecase.JoinRoomUseCase;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import com.asyncgate.signaling_server.support.response.SuccessResponse;
 public class ChatRoomCommandController {
 
     private final JoinRoomUseCase joinRoomUseCase;
+    private final ExitRoomUseCase exitRoomUseCase;
     // private final GetUsersInRoomUseCase getUsersInRoomUseCase;
 
     /**
@@ -40,5 +42,14 @@ public class ChatRoomCommandController {
     @DeleteMapping("/{roomId}")
     public SuccessResponse<String> deleteRoom(@PathVariable("roomId") String roomId) {
         return SuccessResponse.ok("room: " + roomId + "가 삭제되었습니다.");
+    }
+
+    /**
+     * room 나가기 method
+     */
+    @DeleteMapping("/{roomId}/leave")
+    public SuccessResponse<String> leaveRoom(@PathVariable("roomId") String roomId, @MemberID final String memberId) {
+        exitRoomUseCase.execute(roomId, memberId);
+        return SuccessResponse.ok("room: " + roomId + "를 나갔습니다.");
     }
 }

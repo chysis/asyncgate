@@ -408,6 +408,26 @@ public class KurentoManager {
     }
 
     /**
+     * 방에서 특정 사용자 제거
+     */
+    public void removeUser(final String roomId, final String userId) {
+
+        if (!roomEndpoints.containsKey(roomId)) {
+            log.warn("⚠️ [Kurento] 사용자 제거 실패: 존재하지 않는 사용자 (roomId={}, userId={})",roomId, userId);
+            return;
+        }
+
+        // WebRTC Endpoint 제거
+        roomEndpoints.get(roomId).get(userId).release();
+        roomEndpoints.get(roomId).remove(userId);
+
+        // 사용자 정보 제거
+        userStates.remove(userId);
+
+        log.info("🛑 [Kurento] 사용자 제거 완료: roomId={}, userId={}", roomId, userId);
+    }
+
+    /**
      * 방을 제거함
      */
     public void removeRoom(final String roomId) {
